@@ -4,10 +4,11 @@
 set -euo pipefail
 VLLM_VERSION="${VLLM_VERSION:-0.33.*}"
 
-if ! command -v uv >/dev/null; then
+# python3-dev: Triton compiles a C helper against Python.h on the first engine start.
+if ! command -v uv >/dev/null || [ ! -f /usr/include/python3.12/Python.h ]; then
   apt-get update -qq
-  apt-get install -y -qq curl ca-certificates build-essential >/dev/null
-  curl -LsSf https://astral.sh/uv/install.sh | sh
+  apt-get install -y -qq curl ca-certificates build-essential python3-dev >/dev/null
+  command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
 fi
 export PATH="/root/.local/bin:$PATH"
 

@@ -89,8 +89,7 @@ python -m venv .venv
 
 ```
 wsl -d Ubuntu-24.04 -u root -- bash tools/serve_setup.sh
-wsl -d Ubuntu-24.04 -u root -- /opt/vllm/bin/vllm serve nvidia/Llama-3.1-Nemotron-Nano-4B-v1.1 \
-    --host 127.0.0.1 --port 8000 --dtype bfloat16 --max-model-len 16384 --gpu-memory-utilization 0.6
+wsl -d Ubuntu-24.04 -u root -- bash tools/serve.sh     # bf16, 16K context, 60% of a 24 GB card
 python run.py demo --base-url http://127.0.0.1:8000/v1 --model nvidia/Llama-3.1-Nemotron-Nano-4B-v1.1
 ```
 
@@ -105,4 +104,4 @@ python run.py demo --base-url http://127.0.0.1:8000/v1 --model nvidia/Llama-3.1-
 | `report.py` | Run log line and `runs/table.html` |
 | `rules/`, `guardrails/` | Retrieval corpus and the rail config |
 | `probes/` | Version probes for pxr, A2A and Guardrails, with their log |
-| `tools/` | Fixture builder, controls, mutation runner, leak scan, stub model, serve setup |
+| `tools/` | Fixture builder, controls, mutation runner, leak scan, stub model, WSL serve setup and launch |

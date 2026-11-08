@@ -127,8 +127,11 @@ def parse(content: str) -> tuple[dict | None, str | None]:
     why = scene.proposal_schema(p)
     if why:
         return None, why
-    if any(not isinstance(o, dict) or o.get("op") not in scene.OPS for o in p["operations"]):
-        return None, "unknown operation"
+    for i, o in enumerate(p["operations"]):
+        if not isinstance(o, dict):
+            return None, f"operations[{i}] is {json.dumps(o)[:60]}, not an object shaped like the operation shapes"
+        if o.get("op") not in scene.OPS:
+            return None, f"operations[{i}].op {json.dumps(o.get('op'))[:60]} is not one of {sorted(scene.OPS)}"
     if not isinstance(p.get("citations", []), list):
         return None, "citations is not a list"
     return p, None
