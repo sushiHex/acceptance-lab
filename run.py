@@ -170,7 +170,7 @@ async def attempt(run_dir: Path, card, task: dict, n: int, propose, label: str, 
         res = await s.call_tool("inspect", {})
         facts = res.structuredContent
         vis = visible(t, facts)
-        p, ptrace = await propose(vis)
+        p, ptrace = await propose(vis, {"attempt_id": attempt_id, "split": task["split"]})
         trace.update(ptrace)
         if p is None:
             return None
@@ -203,7 +203,7 @@ async def attempt(run_dir: Path, card, task: dict, n: int, propose, label: str, 
 
 
 def baseline_proposer(fn):
-    async def propose(vis):
+    async def propose(vis, ctx):
         return fn(vis), {"execution_allowed": True}
     return propose
 
@@ -217,7 +217,7 @@ def new_run(label: str) -> Path:
     return run_dir
 
 
-def header(label: str, kind: str, tasks: list, split: str | None) -> dict:
+def header(label: str, kind: str, tasks: list, split: str | None, route: dict | None = None) -> dict:
     import hashlib
     import importlib.metadata as md
     versions = {}
@@ -229,14 +229,14 @@ def header(label: str, kind: str, tasks: list, split: str | None) -> dict:
     tasks_bytes = (ROOT / "tasks.jsonl").read_bytes()
     return {"header": {"kind": kind, "label": label, "split": split, "started": datetime.now(timezone.utc).isoformat(),
                        "tasks_sha256": hashlib.sha256(tasks_bytes).hexdigest(),
-                       "task_ids": [t["id"] for t in tasks], "versions": versions}}
+                       "task_ids": [t["id"] for t in tasks], "versions": versions, "route": route}}
 
 
-async def run_tasks(label: str, kind: str, tasks: list, propose, split=None, contract=None) -> Path:
+async def run_tasks(label: str, kind: str, tasks: list, propose, split=None, contract=None, route=None) -> Path:
     run_dir = new_run(label)
     results = run_dir / "results.jsonl"
     with results.open("w", encoding="utf-8", newline="\n") as f:
-        f.write(json.dumps(header(label, kind, tasks, split)) + "\n")
+        f.write(json.dumps(header(label, kind, tasks, split, route)) + "\n")
     shutil.copyfile(ROOT / "tasks.jsonl", run_dir / "tasks.jsonl")
     (run_dir / "fixtures.json").write_text(json.dumps({d.name: scene.bundle_hashes(d) for d in (ROOT / "fixtures").iterdir() if d.is_dir()}), encoding="utf-8")
     proc, port = start_judge(run_dir)
@@ -266,6 +266,32 @@ def cmd_baseline(args) -> int:
     return 0
 
 
+def cmd_model(args) -> int:
+    """eval: one split through the model lane, then the table. demo: demo-01 against the current
+    tasks.jsonl, so an edited contract is what both the model and the judge read; no table row."""
+    import propose
+    import report
+    if not propose.reachable(args.base_url):
+        print(f"model_unreachable: {args.base_url} did not answer /models; the row stays NOT RUN")
+        return 2
+    tasks = load_tasks()
+    route = propose.run_info(args.base_url, args.model)
+    proposer = propose.make_proposer(args.base_url, args.model)
+    if args.cmd == "demo":
+        t = tasks["demo-01"]
+        print(f"demo-01 requirements {json.dumps(t['contract']['requirements'])}: derived "
+              f"{scene.derive_decision(t, ROOT / 'fixtures' / 'demo-01' / 'root.usda')}")
+        run_dir = asyncio.run(run_tasks(f"{args.label} demo", "demo", [t], proposer, route=route))
+        for line in (run_dir / "results.jsonl").read_text(encoding="utf-8").splitlines()[1:]:
+            for c in (json.loads(line).get("verdict") or {}).get("checks", []):
+                print(f"  {c['status']:<5} {c['name']}")
+        return 0
+    chosen = [t for t in tasks.values() if t["split"] == args.split]
+    asyncio.run(run_tasks(args.label, "eval", chosen, proposer, split=args.split, route=route))
+    print(f"table: {report.build(RUNS)}")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -284,8 +310,7 @@ def main() -> int:
         import report
         print(f"table: {report.build(RUNS)}")
         return 0
-    import model_runs
-    return model_runs.main(args)
+    return cmd_model(args)
 
 
 if __name__ == "__main__":
