@@ -2,6 +2,7 @@
   {"label": "always-abstain"},
   {"label": "scripted heuristic"},
   {"label": "Nemotron 4B / vLLM"},
+  {"label": "Nemotron 4B / vLLM + structured outputs"},
   {"label": "Nemotron 4B / NIM", "not_run": "no RTX 3090 profile verified for this checkpoint"},
   {"label": "Nemotron 4B / TensorRT-LLM", "not_run": "not attempted yet"},
   {"label": "Nemotron 4B / Dynamo + vLLM worker", "not_run": "not attempted yet"},

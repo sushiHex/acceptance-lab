@@ -201,6 +201,16 @@ class Boundaries(unittest.TestCase):
         self.assertEqual(r["preserved"], "N/A")         # a timeout before execution is not in M
         self.assertFalse(scene.model_success(None, None))
 
+    def test_decoding_schema_matches_the_contract_vocabulary(self):
+        """Mutation: the structured-outputs schema drifts from scene (a decision or an op the
+        executor does not know, or one it knows that the model can no longer emit)."""
+        import propose
+        s = propose.proposal_json_schema()
+        self.assertEqual(set(s["properties"]["decision"]["enum"]), scene.DECISIONS)
+        branches = s["properties"]["operations"]["items"]["anyOf"]
+        self.assertEqual({b["properties"]["op"]["const"]: b["required"][1] for b in branches}, scene.OPS)
+        self.assertFalse(s["additionalProperties"])
+
 
 if __name__ == "__main__":
     unittest.main()

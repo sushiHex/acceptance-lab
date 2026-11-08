@@ -12,6 +12,10 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # (file, original text, mutated text, test that must fail)
 MUTATIONS = [
+    ("propose.py",
+     "\"properties\": {\"decision\": {\"enum\": sorted(scene.DECISIONS)},",
+     "\"properties\": {\"decision\": {\"enum\": sorted(scene.DECISIONS - {\"abstain\"})},",
+     "test_decoding_schema_matches_the_contract_vocabulary"),
     ("run.py",
      'return {"id": task["id"], "request": task["request"], "contract": task["contract"],',
      'return {**{k: v for k, v in task.items() if k != "expectation"}, "request": task["request"], "contract": task["contract"],',

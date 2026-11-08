@@ -275,8 +275,8 @@ def cmd_model(args) -> int:
         print(f"model_unreachable: {args.base_url} did not answer /models; the row stays NOT RUN")
         return 2
     tasks = load_tasks()
-    route = propose.run_info(args.base_url, args.model)
-    proposer = propose.make_proposer(args.base_url, args.model)
+    route = propose.run_info(args.base_url, args.model, args.structured)
+    proposer = propose.make_proposer(args.base_url, args.model, structured=args.structured)
     if args.cmd == "demo":
         t = tasks["demo-01"]
         print(f"demo-01 requirements {json.dumps(t['contract']['requirements'])}: derived "
@@ -303,7 +303,10 @@ def main() -> int:
         p.add_argument("--model", required=True)
         p.add_argument("--label", default="Nemotron 4B / vLLM")
         p.add_argument("--split", default="test")
+        p.add_argument("--structured", action="store_true", help="constrain decoding to the proposal schema")
     args = ap.parse_args()
+    if getattr(args, "structured", False):
+        args.label += " + structured outputs"
     if args.cmd == "baseline":
         return cmd_baseline(args)
     if args.cmd == "report":

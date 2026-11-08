@@ -137,6 +137,24 @@ def parse(content: str) -> tuple[dict | None, str | None]:
     return p, None
 
 
+ARG_TYPES = {"prim_path": "string", "token": "string", "value": "number", "asset_id": "string"}
+
+
+def proposal_json_schema() -> dict:
+    """The shape parse() demands, as JSON Schema, for servers that constrain decoding to it.
+    Types only: which op, token or asset is right stays the model's judgement, and the
+    decision/operations coupling stays parse()'s check."""
+    op = [{"type": "object", "additionalProperties": False, "required": ["op", arg],
+           "properties": {"op": {"const": name}, arg: {"type": ARG_TYPES[arg]}}}
+          for name, arg in scene.OPS.items()]
+    return {"type": "object", "additionalProperties": False,
+            "required": ["decision", "operations", "citations", "reason"],
+            "properties": {"decision": {"enum": sorted(scene.DECISIONS)},
+                           "operations": {"type": "array", "items": {"anyOf": op}},
+                           "citations": {"type": "array", "items": {"type": "string"}},
+                           "reason": {"type": "string"}}}
+
+
 # ---------------------------------------------------------------- the rail
 
 _RAILS = None
@@ -188,18 +206,25 @@ def reachable(base_url: str) -> bool:
         return False
 
 
-def run_info(base_url: str, model: str) -> dict:
+def run_info(base_url: str, model: str, structured: bool = False) -> dict:
     return {"model": model, "base_url": base_url, "embed_model": EMBED_MODEL, "rules_sha256": corpus()[1],
-            "system": SYSTEM, "temperature": 0}
+            "system": SYSTEM, "temperature": 0, "structured_outputs": structured}
 
 
-def make_proposer(base_url: str, model: str, *, timeout: float = 120, max_tokens: int = 512):
+def make_proposer(base_url: str, model: str, *, structured: bool = False, timeout: float = 120,
+                  max_tokens: int = 512):
+    """structured: the server constrains decoding to proposal_json_schema() (OpenAI
+    response_format, which vLLM and NIM both honour). The prompt is unchanged, so the row
+    differs from the plain one by the constraint alone."""
     import openai
     from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
     from langchain_openai import ChatOpenAI
 
     llm = ChatOpenAI(base_url=base_url, model=model, api_key="not-needed", temperature=0,
                      max_tokens=max_tokens, timeout=timeout, max_retries=0, use_responses_api=False)
+    if structured:
+        llm = llm.bind(response_format={"type": "json_schema", "json_schema": {
+            "name": "proposal", "schema": proposal_json_schema(), "strict": True}})
 
     async def propose(vis: dict, ctx: dict) -> tuple[dict | None, dict]:
         chunks = retrieve(vis, ctx["split"])

@@ -38,6 +38,8 @@ tasks.jsonl ──► coordinator (run.py) ──visible projection──► pro
 - **Client:** LangChain `ChatOpenAI`, temperature 0, no retries, system turn `detailed thinking off`.
 - **Strict parsing:** the reply must be exactly one valid proposal. One repair turn is allowed;
   after that the attempt is `proposal_unparseable`. A leaked `<think>` block counts as a failure.
+- **Structured outputs (`--structured`):** the server constrains decoding to `proposal_json_schema()`
+  (OpenAI `response_format`). Same prompt, so it is its own row and differs by the constraint alone.
 - **Retrieval:** fastembed (`BAAI/bge-small-en-v1.5`) over `rules/rules.jsonl`. A task sees general
   rules plus rules from its own split, top 3 above a cosine floor of 0.60. A chunk pinned to a task
   always reaches that task, which is how the planted injection note in `injection-01` is delivered.
@@ -56,7 +58,7 @@ and a prompt injection.
 
 ```
 python run.py baseline                                  # always-abstain + scripted heuristic, then the table
-python run.py eval --base-url URL --model ID [--label L] [--split test]
+python run.py eval --base-url URL --model ID [--label L] [--split test] [--structured]
 python run.py demo --base-url URL --model ID            # demo-01, prints each verdict check
 python run.py report                                    # rebuild runs/table.html from every run
 ```
