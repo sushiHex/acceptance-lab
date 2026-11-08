@@ -14,4 +14,6 @@ export PATH="/root/.local/bin:$PATH"
 
 [ -x /opt/vllm/bin/python ] || uv venv /opt/vllm --python 3.12
 uv pip install --python /opt/vllm/bin/python "vllm==${VLLM_VERSION}"
+# peft for tools/sft_train.py; it reuses the torch and transformers vLLM pinned, upgrading nothing.
+uv pip install --python /opt/vllm/bin/python peft
 /opt/vllm/bin/python -c 'import vllm, torch; print("vllm", vllm.__version__, "torch", torch.__version__, "cuda", torch.cuda.is_available())'

@@ -206,13 +206,13 @@ def reachable(base_url: str) -> bool:
         return False
 
 
-def run_info(base_url: str, model: str, structured: bool = False) -> dict:
+def run_info(base_url: str, model: str, structured: bool = False, temperature: float = 0) -> dict:
     return {"model": model, "base_url": base_url, "embed_model": EMBED_MODEL, "rules_sha256": corpus()[1],
-            "system": SYSTEM, "temperature": 0, "structured_outputs": structured}
+            "system": SYSTEM, "temperature": temperature, "structured_outputs": structured}
 
 
-def make_proposer(base_url: str, model: str, *, structured: bool = False, timeout: float = 120,
-                  max_tokens: int = 512):
+def make_proposer(base_url: str, model: str, *, structured: bool = False, temperature: float = 0,
+                  timeout: float = 120, max_tokens: int = 512):
     """structured: the server constrains decoding to proposal_json_schema() (OpenAI
     response_format, which vLLM and NIM both honour). The prompt is unchanged, so the row
     differs from the plain one by the constraint alone."""
@@ -220,7 +220,7 @@ def make_proposer(base_url: str, model: str, *, structured: bool = False, timeou
     from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
     from langchain_openai import ChatOpenAI
 
-    llm = ChatOpenAI(base_url=base_url, model=model, api_key="not-needed", temperature=0,
+    llm = ChatOpenAI(base_url=base_url, model=model, api_key="not-needed", temperature=temperature,
                      max_tokens=max_tokens, timeout=timeout, max_retries=0, use_responses_api=False)
     if structured:
         llm = llm.bind(response_format={"type": "json_schema", "json_schema": {

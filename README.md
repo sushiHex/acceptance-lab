@@ -63,6 +63,17 @@ python run.py demo --base-url URL --model ID            # demo-01, prints each v
 python run.py report                                    # rebuild runs/table.html from every run
 ```
 
+Training (the SFT row). The judge is the only label source:
+
+```
+python tools/sft_data.py sample --base-url URL --model ID   # K sampled runs over train, each executed and judged
+python tools/sft_data.py build RUN_DIR ...                  # keep what scene.model_success accepts -> train/sft.jsonl
+wsl -d Ubuntu-24.04 -u root -- /opt/vllm/bin/python tools/sft_train.py --out /root/adapters/sft
+wsl -d Ubuntu-24.04 -u root -- env LORA=/root/adapters/sft bash tools/serve.sh   # serves model id "sft"
+```
+
+`train/adapter-manifest.json` records the data hash, hyperparameters and loss.
+
 The table compares one cohort: runs over the same `tasks.jsonl` hash, scored on the test split.
 `configurations.json` declares every planned row, and a row that did not run says why.
 
