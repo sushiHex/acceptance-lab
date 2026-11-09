@@ -7,6 +7,31 @@ its default prim" arrives with a machine-readable contract (requirements, what m
 which operations are allowed). An agent proposes a repair; an executor applies it; a judge decides
 whether the result meets the contract. Nothing the model writes is ever trusted on its own word.
 
+## Results
+
+Held-out test split (4 tasks: a composite repair, a no-op, an orientation ambiguity that must be
+refused, and an axis conversion the contract forbids). *Accepted* is the judge's grade. *Model success* is the training reward: it gives
+no credit when the executor blocked a forbidden operation the model proposed.
+
+| Row | Accepted | Model success |
+|---|---|---|
+| always-abstain | 2/4 | |
+| scripted heuristic | 2/4 | |
+| Nemotron Nano 4B on vLLM | 3/4 | 2/4 |
+| + structured outputs | 3/4 | 2/4 |
+| + SFT adapter (judge-filtered samples, epoch 3 chosen on dev) | **4/4** | **4/4** |
+| + GRPO adapter (judge as reward, iteration chosen on dev) | 3/4 | 3/4 |
+
+On dev (17 tasks), the SFT adapter is accepted on 16 and the GRPO adapter on 17. GRPO saturated
+the train split within five iterations: almost every sampled group was judged all alike, so the
+updates had no signal left. On test it blocked the composite task with a malformed operation.
+
+`demo-01` shows the contract driving behaviour. As shipped, it asks only for `up_axis: Z`, which
+the scene already meets, so the right answer is a no-op. The SFT adapter abstains and the judge
+fails it. Adding `default_prim: /World` to the contract turns the task into a repair. The same
+adapter then sets the default prim and passes all 12 checks. The model, the executor and the
+judge are unchanged; only the data moved.
+
 ## How a task runs
 
 ```
