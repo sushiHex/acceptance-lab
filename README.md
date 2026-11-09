@@ -1,78 +1,90 @@
 # acceptance-lab
 
-**A partner writes acceptance as data. The same data grades the agent, guards it, and trains it.**
+An agent that repairs OpenUSD scenes, and a judge that grades each repair against a written
+contract.
 
-An agent repairs OpenUSD scenes against a machine-readable contract. A request like "make this asset
-Y-up in meters with /World as its default prim" arrives with its requirements, what must be preserved,
-and which operations are allowed. The model proposes; an executor applies; a judge decides. Nothing
-the model writes is trusted on its own word.
+Each task has a scene and a contract. The contract is a JSON file. It lists the requirements (for
+example, Y-up, meters, `/World` as the default prim), the properties that must not change, and the
+operations the agent may use. The same contract has three uses:
 
-A companion to [stagewright](https://github.com/sushiHex/stagewright), which builds OpenUSD scenes
-from prompts. This project asks the next question: how do you know the agent did it right?
+1. **Grading.** A judge checks the repaired scene against each item in the contract.
+2. **Guarding.** One preflight function decides which operations are permitted. The executor, the
+   NeMo Guardrails rail and the judge all call it.
+3. **Training.** The judge's verdict is the only label for fine-tuning and the only reward for
+   reinforcement learning.
 
-![One acceptance contract feeds three jobs: an A2A judge grades, one shared preflight guards, and the verdict is the training reward. Each task runs Nemotron Nano 4B on vLLM, a NeMo Guardrails rail, an MCP executor and an A2A judge.](docs/assets/acceptance-loop.svg)
+The model does not touch files. It sends one JSON proposal. The executor applies the proposal or
+refuses it, and the judge reads the result.
+
+This is a companion project to [stagewright](https://github.com/sushiHex/stagewright), which builds
+OpenUSD scenes from prompts. stagewright makes scenes; this project checks an agent's changes to them.
+
+![The contract feeds the judge, the shared preflight and the training reward. Each task runs Nemotron Nano 4B on vLLM, a NeMo Guardrails rail, an MCP executor and an A2A judge.](docs/assets/acceptance-loop.svg)
 
 [Results](#results) · [Technical guide](docs/guide.md) · [Quickstart](#quickstart)
 
 ## Results
 
-On the held-out test split (4 tasks: a composite repair, a no-op, an orientation ambiguity that must
-be refused, and an axis conversion the contract forbids):
+The test split has 4 tasks that do not occur in training: a composite repair, a scene that needs no
+change, an ambiguous orientation request that the agent must refuse, and an axis change that the
+contract does not permit.
 
-| Row | Accepted | Model success |
+| Configuration | Accepted | Model success |
 |---|---|---|
-| always-abstain | 2/4 | |
-| scripted heuristic | 2/4 | |
+| Always abstain | 2/4 | |
+| Scripted heuristic | 2/4 | |
 | Nemotron Nano 4B on vLLM | 3/4 | 2/4 |
 | + structured outputs | 3/4 | 2/4 |
-| + SFT adapter (judge-filtered samples, epoch chosen on dev) | **4/4** | **4/4** |
-| + GRPO adapter (judge as reward, iteration chosen on dev) | 3/4 | 3/4 |
+| + SFT adapter | **4/4** | **4/4** |
+| + GRPO adapter | 3/4 | 3/4 |
 
-*Accepted* is the judge's grade. *Model success* is the training reward: it gives no credit when the
+"Accepted" is the judge's grade. "Model success" is the training reward. It is lower when the
 executor had to block an operation the model proposed.
 
-- **SFT** is rejection sampling: the model's own samples, kept only where the judge accepts them.
-  On dev (17 tasks), the SFT adapter is accepted on 16.
-- **GRPO** reached 17 of 17 on dev, but it saturated the train split within five iterations:
-  almost every sampled group was judged all alike, so the updates had no signal left. On test it
-  proposed a malformed operation on the composite task, and the executor blocked it.
+- **SFT:** the model's own samples on the train split, kept only when the judge accepted them.
+  The training epoch was selected on the dev split (17 tasks), where the adapter passes 16.
+- **GRPO:** the judge's verdict is the reward. It passes 17 of 17 on dev. After five iterations
+  almost all sampled groups got the same score, so the updates had no signal. On test it proposed
+  a malformed operation on the composite task, and the executor blocked it.
 
-**The contract drives the behaviour.** `demo-01` asks only for `up_axis: Z`. The scene already meets
-it, so the right answer is a no-op. The SFT adapter abstains, and the judge fails it. Adding
-`default_prim: /World` to the contract turns the task into a repair, and the same adapter then sets
-the default prim and passes all 12 checks. The model, executor and judge are unchanged; only the
-data moved.
+**Example: change the contract, change the correct answer.** Task `demo-01` requires only
+`up_axis: Z`. The scene is already Z-up, so the correct answer is no change. The SFT adapter refuses
+the task instead, and the judge fails it. When `default_prim: /World` is added to the contract, the
+correct answer becomes a repair. The same adapter sets the default prim, and all 12 checks pass. No
+code changed between the two runs.
 
-## The stack
+## Stack
 
 | Stage | Tools |
 |---|---|
 | Model | Nemotron Nano 4B v1.1, served by vLLM with LoRA adapters |
 | Proposer | LangChain `ChatOpenAI`, optional structured outputs, fastembed rule retrieval |
-| Guard | NeMo Guardrails output rail running the shared preflight |
+| Guard | NeMo Guardrails output rail that runs the shared preflight |
 | Execute | MCP server, one process per attempt, OpenUSD (`pxr` from the OpenUSD Exchange SDK package) |
-| Judge | A2A agent, read-only over the frozen task and the attempt |
-| Train | PEFT LoRA SFT, and GRPO with the judge as the reward |
+| Judge | A2A agent with read-only access to the task and the attempt |
+| Train | LoRA SFT with PEFT, and GRPO with the judge as the reward |
 
-## Checked, with clear boundaries
+## Verification
 
-- 12 boundary tests. Each names the mutation that breaks it, and `tools/mutate.py` confirms all
-  11 mutations turn a test red.
-- 60 of 60 fixtures behave: every task ships a pass control the judge accepts and a fail control it
-  rejects.
-- Train, dev and test are disjoint. The test families (composite, orientation ambiguity, axis
-  refusal) never appear in training. Dev chooses what ships, and the table reads test runs only.
+- 12 tests. Each test names the code change that must make it fail. `tools/mutate.py` makes those
+  11 changes and confirms that a test fails each time.
+- All 60 fixtures have a pass control and a fail control. The judge accepts every pass control and
+  rejects every fail control.
+- The train, dev and test splits do not overlap. The test task types (composite, ambiguous
+  orientation, forbidden axis change) do not occur in train or dev. Dev selects the adapter. The
+  results table uses test runs only.
 
-The boundaries:
+Limits:
 
-- The test split is 4 tasks, run once at temperature 0, so the table shows direction, not
-  statistical significance.
-- The minimal-repair check is coarse (see the [guide](docs/guide.md#how-a-task-runs)).
-- The no-op demo is still failed by every adapter.
+- The test split has 4 tasks, run once at temperature 0. The table shows a direction, not a
+  statistically significant result.
+- The check that a repair makes no unnecessary changes is approximate. The
+  [guide](docs/guide.md#how-a-task-runs) gives the known gaps.
+- All adapters fail `demo-01` as shipped.
 
 ## Quickstart
 
-Windows, Python 3.13. The baselines need no GPU.
+Windows, Python 3.13. The baselines do not need a GPU.
 
 ```powershell
 git clone https://github.com/sushiHex/acceptance-lab.git
@@ -81,11 +93,11 @@ python -m venv .venv
 .venv\Scripts\pip install -r requirements-windows.lock
 
 .venv\Scripts\python run.py baseline            # both baselines, then runs/table.html
-.venv\Scripts\python -m unittest test_lab -v    # boundary tests
-.venv\Scripts\python tools/controls.py          # every fixture's pass and fail control
+.venv\Scripts\python -m unittest test_lab -v    # tests
+.venv\Scripts\python tools/controls.py          # pass and fail control for each fixture
 ```
 
-For the model rows, serving runs vLLM in WSL Ubuntu on a 24 GB card. See the
-[technical guide](docs/guide.md#setup) for setup, evaluation, training and the full layout.
+The model configurations need vLLM in WSL Ubuntu and a 24 GB GPU. The
+[technical guide](docs/guide.md#setup) covers setup, evaluation, training and the file layout.
 
-[MIT](LICENSE) for original code and fixtures. Dependencies retain their own terms.
+[MIT](LICENSE) for the original code and fixtures. Dependencies keep their own licenses.
