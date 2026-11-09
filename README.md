@@ -73,9 +73,10 @@ Held-out test split: 4 tasks, one run each at temperature 0.
 operation blocked by the executor. Every row has its run file in [`results/`](results).</sub>
 
 **What the rows show.** Always-abstain passes the two tasks that need a refusal. The scripted
-heuristic passes the two that need a repair. The base model repairs both and refuses neither: it
-edits on the ambiguous task, and on the forbidden task it proposes the axis change, which the
-executor blocks. **The SFT adapter is the first configuration to refuse both and repair both.**
+heuristic passes the other two: one repair, and one scene that needs no change. The base model gets
+those two right as well, but refuses neither: it edits on the ambiguous task, and on the forbidden
+task it proposes the axis change, which is blocked. **The SFT adapter is the first configuration
+to get all four right.**
 
 > [!IMPORTANT]
 > **Limits.** With 4 test tasks, one task moves a row by 25 points, so read the table as a smoke
