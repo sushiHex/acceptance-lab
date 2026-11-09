@@ -1,9 +1,9 @@
 {
   "base_model": "nvidia/Llama-3.1-Nemotron-Nano-4B-v1.1",
   "data": "train/sft.jsonl",
-  "data_sha256": "6dff1d8c6bbed0de6005c934087b55e288b51a2b8f9317bf53105a09b96372e0",
-  "examples": 30,
-  "max_tokens": 710,
+  "data_sha256": "ec0f0cd6690a1f6bde5303a3b0942d9c32e032d262ba4e8fdfe24e46127253aa",
+  "examples": 39,
+  "max_tokens": 707,
   "hyperparameters": {
     "rank": 16,
     "alpha": 32,
@@ -23,11 +23,11 @@
     ]
   },
   "epoch_loss": [
-    1.1487,
-    0.3115,
-    0.1245,
-    0.0591
+    0.8306,
+    0.1347,
+    0.0585,
+    0.0178
   ],
-  "adapter_dir": "/root/adapters/sft",
-  "selected_epoch": 4
+  "adapter_dir": "/root/adapters/sft2",
+  "selected_epoch": 3
 }

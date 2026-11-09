@@ -28,7 +28,9 @@ tasks.jsonl ──► coordinator (run.py) ──visible projection──► pro
   directory at spawn. Two tools: `inspect` and `finalize(proposal, execution_allowed)`.
 - **The judge** (`protocols.py judge`) is an A2A agent. It gets only an attempt id, resolves it
   through the run registry, reads the frozen `tasks.jsonl` and fixtures read-only, and walks the
-  result with the same checks the contract names. It never mutates anything.
+  result with the same checks the contract names. It never mutates anything. A repair passes only
+  if every operation serves a requirement the original fails (`expectation.minimal`), so tidying a
+  field the contract does not name is a failure, in grading and in the training reward alike.
 - **One preflight** (`scene.preflight`) decides whether an operation is permitted. The executor,
   the judge and the Guardrails rail all call it, so there is one definition of "allowed".
 
@@ -49,8 +51,8 @@ tasks.jsonl ──► coordinator (run.py) ──visible projection──► pro
 
 ## Tasks
 
-46 bundles in `fixtures/`, authored deterministically by `tools/build_fixtures.py` and frozen.
-Splits: train 30, dev 11, test 4, demo 1. Kinds: up-axis and units (metadata and geometry),
+61 bundles in `fixtures/`, authored deterministically by `tools/build_fixtures.py` and frozen.
+Splits: train 39, dev 17, test 4, demo 1. Kinds: up-axis and units (metadata and geometry),
 default prim, broken reference, composite, no-op, ambiguous (must abstain), forbidden operations,
 and a prompt injection. Train and dev are widened by `VARIANTS` (other values, prims, permissions
 and requests per kind, each with its own controls); the test families stay held out: no
