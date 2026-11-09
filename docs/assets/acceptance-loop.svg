@@ -1,59 +1,91 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="470" viewBox="0 0 1200 470" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
   <title id="title">How the acceptance contract is used</title>
-  <desc id="desc">Each task has an acceptance contract in JSON: requirements, properties to keep, and permitted operations. The contract is used three ways. An A2A judge grades the repaired scene against it. One shared preflight check, used by the executor, the NeMo Guardrails rail and the judge, decides which operations are permitted. The judge's verdict is the training signal: SFT uses only accepted samples, and GRPO uses the verdict as its reward. Each task goes from Nemotron Nano 4B on vLLM, through the Guardrails rail and the MCP executor, to the A2A judge.</desc>
+  <desc id="desc">Each task has an acceptance contract in JSON with requirements, properties to keep, and permitted operations. Every step of a task reads that contract. Step 1: Nemotron Nano 4B on vLLM sends one JSON proposal. Step 2: a NeMo Guardrails output rail checks it. Step 3: an MCP executor applies it or refuses it. Step 4: an A2A judge grades the result and returns accepted or failed, with each check. One shared preflight check decides what is permitted for the rail, the executor and the judge. The judge's verdict and the executor's receipt go back to the model as training data: they filter the SFT samples and give the GRPO reward.</desc>
   <defs>
-    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M1 1L6 4L1 7" fill="none" stroke="#76b900" stroke-width="1.6"/></marker>
+    <marker id="head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M1 1L8 5L1 9" fill="none" stroke="#76b900" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="dot" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5">
+      <circle cx="5" cy="5" r="4" fill="#76b900"/>
+    </marker>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1e2831"/><stop offset="1" stop-color="#18212a"/>
+    </linearGradient>
   </defs>
-  <rect width="1200" height="470" rx="18" fill="#11161c"/>
-  <g font-family="Segoe UI, Arial, sans-serif">
-    <text x="36" y="43" fill="#f4f7fa" font-size="24" font-weight="700">How the contract is used</text>
-    <text x="1164" y="42" text-anchor="end" fill="#98a7b5" font-size="17" letter-spacing="1.2">acceptance-lab</text>
 
-    <rect x="330" y="64" width="540" height="72" rx="10" fill="#202a34" stroke="#76b900" stroke-width="1.4"/>
-    <text x="600" y="94" text-anchor="middle" fill="#f4f7fa" font-size="20" font-weight="600">Acceptance contract (JSON)</text>
-    <text x="600" y="119" text-anchor="middle" fill="#aab7c3" font-size="16">requirements · properties to keep · permitted operations</text>
+  <rect width="1200" height="520" rx="18" fill="#11161c"/>
 
-    <g fill="none" stroke="#76b900" stroke-width="2" marker-end="url(#arrow)">
-      <path d="M420 138L222 176"/><path d="M600 138V176"/><path d="M780 138L978 176"/>
+  <g font-family="'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif">
+    <!-- header -->
+    <text x="40" y="50" fill="#f4f7fa" font-size="24" font-weight="700">How the contract is used</text>
+    <text x="40" y="74" fill="#8d9cab" font-size="15">Every step of a task reads the same contract. The verdict becomes training data.</text>
+    <text x="1160" y="50" text-anchor="end" fill="#6f7f8e" font-size="15" letter-spacing="1.4">acceptance-lab</text>
+
+    <!-- contract -->
+    <rect x="330" y="98" width="540" height="78" rx="12" fill="#1a2a1a" stroke="#76b900" stroke-width="1.5"/>
+    <text x="354" y="128" fill="#f4f7fa" font-size="18" font-weight="700">Acceptance contract</text>
+    <text x="846" y="128" text-anchor="end" fill="#a5db48" font-size="12" font-weight="700" letter-spacing="1.6">JSON · ONE PER TASK</text>
+    <g font-size="13" fill="#cfe3b0">
+      <rect x="354" y="142" width="118" height="22" rx="11" fill="#243a1c"/>
+      <text x="413" y="157" text-anchor="middle">requirements</text>
+      <rect x="482" y="142" width="152" height="22" rx="11" fill="#243a1c"/>
+      <text x="558" y="157" text-anchor="middle">properties to keep</text>
+      <rect x="644" y="142" width="178" height="22" rx="11" fill="#243a1c"/>
+      <text x="733" y="157" text-anchor="middle">permitted operations</text>
     </g>
 
-    <g fill="#1d282e" stroke="#35434b">
-      <rect x="36" y="184" width="364" height="132" rx="9"/>
-      <rect x="418" y="184" width="364" height="132" rx="9"/>
-      <rect x="800" y="184" width="364" height="132" rx="9"/>
+    <!-- contract is read by every step -->
+    <g fill="none" stroke="#4f7a1e" stroke-width="1.5" stroke-dasharray="3 5" stroke-linecap="round" marker-end="url(#dot)">
+      <path d="M380 176C380 205 170 200 170 232"/>
+      <path d="M520 176C520 205 460 200 460 232"/>
+      <path d="M680 176C680 205 750 200 750 232"/>
+      <path d="M820 176C820 205 1040 200 1040 232"/>
     </g>
-    <g fill="#a5db48" font-size="15" font-weight="700" letter-spacing="1.6">
-      <text x="56" y="214">GRADING</text><text x="438" y="214">GUARDING</text><text x="820" y="214">TRAINING</text>
+
+    <!-- steps -->
+    <g fill="url(#card)" stroke="#33414c" stroke-width="1">
+      <rect x="60" y="236" width="220" height="86" rx="10"/>
+      <rect x="350" y="236" width="220" height="86" rx="10"/>
+      <rect x="640" y="236" width="220" height="86" rx="10"/>
+      <rect x="930" y="236" width="220" height="86" rx="10" stroke="#76b900"/>
+    </g>
+    <g fill="#8d9cab" font-size="12" font-weight="700" letter-spacing="1.6">
+      <text x="80" y="262">1 · PROPOSE</text>
+      <text x="370" y="262">2 · CHECK</text>
+      <text x="660" y="262">3 · EXECUTE</text>
+      <text x="950" y="262" fill="#a5db48">4 · GRADE</text>
     </g>
     <g fill="#f4f7fa" font-size="18" font-weight="600">
-      <text x="56" y="242">A2A judge</text><text x="438" y="242">Shared preflight check</text><text x="820" y="242">Judge verdict as signal</text>
+      <text x="80" y="288">Nemotron Nano 4B</text>
+      <text x="370" y="288">NeMo Guardrails</text>
+      <text x="660" y="288">Executor</text>
+      <text x="950" y="288">Judge</text>
     </g>
-    <g fill="#aab7c3" font-size="15">
-      <text x="56" y="268">Checks the repaired scene against</text>
-      <text x="56" y="290">each item. It cannot change files.</text>
-      <text x="438" y="268">The executor, rail and judge use</text>
-      <text x="438" y="290">the same permission check.</text>
-      <text x="820" y="268">SFT uses only accepted samples.</text>
-      <text x="820" y="290">GRPO uses the verdict as its reward.</text>
+    <g fill="#aab7c3" font-size="14">
+      <text x="80" y="309">on vLLM · one JSON proposal</text>
+      <text x="370" y="309">output rail</text>
+      <text x="660" y="309">MCP server · applies or refuses</text>
+      <text x="950" y="309">A2A agent · accepted or failed</text>
     </g>
 
-    <text x="36" y="358" fill="#dce5e8" font-size="15" font-weight="700" letter-spacing="1.6">TASK FLOW</text>
-    <g fill="#202a34">
-      <rect x="36" y="372" width="250" height="62" rx="9"/>
-      <rect x="320" y="372" width="250" height="62" rx="9"/>
-      <rect x="604" y="372" width="250" height="62" rx="9"/>
-      <rect x="888" y="372" width="276" height="62" rx="9"/>
+    <!-- flow arrows -->
+    <g fill="none" stroke="#76b900" stroke-width="2" stroke-linecap="round" marker-end="url(#head)">
+      <path d="M284 279H342"/><path d="M574 279H632"/><path d="M864 279H922"/>
     </g>
-    <g fill="none" stroke="#76b900" stroke-width="2" marker-end="url(#arrow)">
-      <path d="M290 403H312"/><path d="M574 403H596"/><path d="M858 403H880"/>
+
+    <!-- guarding bracket -->
+    <g fill="none" stroke="#5b6b78" stroke-width="1.5" stroke-linecap="round">
+      <path d="M460 330V344H1040V330"/><path d="M750 330V344"/>
     </g>
-    <g fill="#f4f7fa" font-size="16" font-weight="600" text-anchor="middle">
-      <text x="161" y="399">Nemotron Nano 4B</text><text x="445" y="399">NeMo Guardrails</text>
-      <text x="729" y="399">MCP executor</text><text x="1026" y="399">A2A judge</text>
-    </g>
-    <g fill="#aab7c3" font-size="14" text-anchor="middle">
-      <text x="161" y="421">on vLLM, sends a proposal</text><text x="445" y="421">runs the preflight check</text>
-      <text x="729" y="421">applies it or refuses it</text><text x="1026" y="421">returns accepted or failed</text>
-    </g>
+    <text x="750" y="368" text-anchor="middle" fill="#a5db48" font-size="12" font-weight="700" letter-spacing="1.6">GUARDING</text>
+    <text x="750" y="388" text-anchor="middle" fill="#aab7c3" font-size="14">one shared preflight check decides what is permitted</text>
+
+    <!-- training loop -->
+    <path d="M1150 290C1176 290 1176 462 1116 462H230C170 462 170 400 170 330" fill="none" stroke="#76b900" stroke-width="2" stroke-linecap="round" marker-end="url(#head)"/>
+    <rect x="370" y="447" width="460" height="30" rx="15" fill="#11161c"/>
+    <text x="600" y="467" text-anchor="middle" font-size="14">
+      <tspan fill="#a5db48" font-size="12" font-weight="700" letter-spacing="1.6">TRAINING</tspan>
+      <tspan fill="#aab7c3" dx="10">verdict and receipt: SFT filter, GRPO reward</tspan>
+    </text>
   </g>
 </svg>

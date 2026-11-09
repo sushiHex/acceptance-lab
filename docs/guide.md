@@ -2,6 +2,17 @@
 
 How Acceptance Lab works, how to run and train it, and how it is verified. The [README](../README.md) has the overview and results.
 
+## Stack
+
+| Stage | Tools |
+|---|---|
+| Model | [Nemotron Nano 4B v1.1](https://huggingface.co/nvidia/Llama-3.1-Nemotron-Nano-4B-v1.1), served by vLLM with LoRA adapters |
+| Proposer | LangChain `ChatOpenAI`, optional structured outputs, fastembed rule retrieval |
+| Guard | [NeMo Guardrails](https://github.com/NVIDIA-NeMo/Guardrails) output rail that runs the shared preflight |
+| Execute | MCP server, one process per attempt, OpenUSD from the [OpenUSD Exchange SDK](https://docs.omniverse.nvidia.com/usd/code-docs/usd-exchange-sdk/latest/index.html) package |
+| Judge | A2A agent; deterministic checks, read-only access to the task and the attempt |
+| Train | LoRA SFT with PEFT, and GRPO with the judge as the reward |
+
 ## How a task runs
 
 ```
