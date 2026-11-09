@@ -21,6 +21,12 @@ OPS = {
     "set_meters_per_unit_geometry": "value",
     "replace_reference": "asset_id",
 }
+SERVES = {    # the requirement each operation exists to meet; a repair may only touch unmet ones
+    "set_default_prim": "default_prim",
+    "set_up_axis_metadata": "up_axis", "set_up_axis_geometry": "up_axis",
+    "set_meters_per_unit_metadata": "meters_per_unit", "set_meters_per_unit_geometry": "meters_per_unit",
+    "replace_reference": "no_composition_errors",
+}
 REQUIREMENT_KEYS = {"up_axis", "default_prim", "meters_per_unit", "no_composition_errors"}
 PRESERVE_KEYS = {"prim_paths", "mesh_topology", "world_bounds"}
 UNITS_EPS = 1e-5            # UsdGeom.LinearUnitsAre default
@@ -613,6 +619,12 @@ def evaluate(task: dict, attempt_dir: Path) -> dict:
         checks.append(_check("expectation.decision", "edit, every operation executed",
                              f"{said}, statuses {statuses}", "pass" if executed else "fail"))
         if executed:
+            unmet = {c["name"].split(".", 1)[1] for c in requirement_checks(
+                orig, orig, orig_dir / "root.usda", contract["requirements"]) if c["status"] != "pass"}
+            tidy = [o["op"]["op"] for o in ops if SERVES.get(o["op"]["op"]) not in unmet]
+            checks.append(_check("expectation.minimal", "every operation serves an unmet requirement",
+                                 f"unrequested {tidy}" if tidy else "every operation needed",
+                                 "fail" if tidy else "pass"))
             checks += requirement_checks(orig, cand, cand_dir / "root.usda", contract["requirements"])
             checks += preserve_checks(orig, cand, contract["preserve"], exp.get("preserve_scope", {}))
             checks += landmark_checks(cand, exp.get("landmarks", []))

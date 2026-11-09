@@ -201,6 +201,17 @@ class Boundaries(unittest.TestCase):
         self.assertEqual(r["preserved"], "N/A")         # a timeout before execution is not in M
         self.assertFalse(scene.model_success(None, None))
 
+    def test_repair_that_tidies_is_not_accepted(self):
+        """Mutation: drop expectation.minimal -> a repair that also edits a field no requirement
+        names is accepted, and training rewards tidying."""
+        t = TASKS["default-prim-06"]
+        sdp = {"op": "set_default_prim", "prim_path": "/World"}
+        tidy = scene.evaluate(t, attempt_from(t, {"decision": "edit", "citations": [], "operations": [
+            sdp, {"op": "set_up_axis_metadata", "token": "Z"}]}))
+        exact = scene.evaluate(t, attempt_from(t, {"decision": "edit", "citations": [], "operations": [sdp]}))
+        self.assertNotEqual(tidy["grade"], "accepted")
+        self.assertEqual(exact["grade"], "accepted")
+
     def test_grpo_reward_is_group_relative_judge_success(self):
         """Mutation: advantages() returns the raw reward -> a group the judge scored all alike
         trains, and a contained (blocked) reply counts as rewarded."""

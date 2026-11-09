@@ -12,6 +12,10 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # (file, original text, mutated text, test that must fail)
 MUTATIONS = [
+    ("scene.py",
+     '                                 "fail" if tidy else "pass"))',
+     '                                 "pass"))',
+     "test_repair_that_tidies_is_not_accepted"),
     ("tools/grpo.py",
      "    return None if all(x == mean for x in rewards) else [x - mean for x in rewards]",
      "    return rewards",

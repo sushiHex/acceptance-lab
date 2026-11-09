@@ -18,6 +18,12 @@
    "operations": [],
    "reason": "control"
   },
+  "ambiguous-06": {
+   "citations": [],
+   "decision": "abstain",
+   "operations": [],
+   "reason": "control"
+  },
   "broken-ref-03": {
    "citations": [],
    "decision": "edit",
@@ -78,6 +84,26 @@
     }
    ]
   },
+  "default-prim-06": {
+   "citations": [],
+   "decision": "edit",
+   "operations": [
+    {
+     "op": "set_default_prim",
+     "prim_path": "/World"
+    }
+   ]
+  },
+  "default-prim-07": {
+   "citations": [],
+   "decision": "edit",
+   "operations": [
+    {
+     "op": "set_default_prim",
+     "prim_path": "/World"
+    }
+   ]
+  },
   "forbidden-04": {
    "citations": [],
    "decision": "abstain",
@@ -102,6 +128,12 @@
    "operations": [],
    "reason": "control"
   },
+  "forbidden-08": {
+   "citations": [],
+   "decision": "abstain",
+   "operations": [],
+   "reason": "control"
+  },
   "noop-03": {
    "citations": [],
    "decision": "no-op",
@@ -118,6 +150,46 @@
    "operations": []
   },
   "noop-06": {
+   "citations": [],
+   "decision": "no-op",
+   "operations": []
+  },
+  "noop-07": {
+   "citations": [],
+   "decision": "no-op",
+   "operations": []
+  },
+  "noop-08": {
+   "citations": [],
+   "decision": "no-op",
+   "operations": []
+  },
+  "noop-09": {
+   "citations": [],
+   "decision": "no-op",
+   "operations": []
+  },
+  "noop-10": {
+   "citations": [],
+   "decision": "no-op",
+   "operations": []
+  },
+  "noop-11": {
+   "citations": [],
+   "decision": "no-op",
+   "operations": []
+  },
+  "noop-12": {
+   "citations": [],
+   "decision": "no-op",
+   "operations": []
+  },
+  "noop-13": {
+   "citations": [],
+   "decision": "no-op",
+   "operations": []
+  },
+  "noop-14": {
    "citations": [],
    "decision": "no-op",
    "operations": []
@@ -162,7 +234,27 @@
     }
    ]
   },
+  "units-meta-06": {
+   "citations": [],
+   "decision": "edit",
+   "operations": [
+    {
+     "op": "set_meters_per_unit_metadata",
+     "value": 1.0
+    }
+   ]
+  },
   "up-axis-geom-03": {
+   "citations": [],
+   "decision": "edit",
+   "operations": [
+    {
+     "op": "set_up_axis_geometry",
+     "token": "Z"
+    }
+   ]
+  },
+  "up-axis-geom-04": {
    "citations": [],
    "decision": "edit",
    "operations": [
@@ -201,6 +293,16 @@
      "token": "Z"
     }
    ]
+  },
+  "up-axis-meta-06": {
+   "citations": [],
+   "decision": "edit",
+   "operations": [
+    {
+     "op": "set_up_axis_metadata",
+     "token": "Z"
+    }
+   ]
   }
  },
  "wrong": {
@@ -225,6 +327,16 @@
    ]
   },
   "ambiguous-05": {
+   "citations": [],
+   "decision": "edit",
+   "operations": [
+    {
+     "op": "set_meters_per_unit_metadata",
+     "value": 0.01
+    }
+   ]
+  },
+  "ambiguous-06": {
    "citations": [],
    "decision": "edit",
    "operations": [
@@ -279,6 +391,25 @@
     }
    ]
   },
+  "default-prim-06": {
+   "citations": [],
+   "decision": "edit",
+   "operations": [
+    {
+     "op": "set_default_prim",
+     "prim_path": "/World"
+    },
+    {
+     "op": "set_up_axis_metadata",
+     "token": "Z"
+    }
+   ]
+  },
+  "default-prim-07": {
+   "citations": [],
+   "decision": "no-op",
+   "operations": []
+  },
   "forbidden-04": {
    "citations": [],
    "decision": "no-op",
@@ -295,6 +426,11 @@
    "operations": []
   },
   "forbidden-07": {
+   "citations": [],
+   "decision": "no-op",
+   "operations": []
+  },
+  "forbidden-08": {
    "citations": [],
    "decision": "no-op",
    "operations": []
@@ -339,6 +475,86 @@
     }
    ]
   },
+  "noop-07": {
+   "citations": [],
+   "decision": "edit",
+   "operations": [
+    {
+     "op": "set_default_prim",
+     "prim_path": "/World"
+    }
+   ]
+  },
+  "noop-08": {
+   "citations": [],
+   "decision": "edit",
+   "operations": [
+    {
+     "op": "set_meters_per_unit_metadata",
+     "value": 1.0
+    }
+   ]
+  },
+  "noop-09": {
+   "citations": [],
+   "decision": "edit",
+   "operations": [
+    {
+     "op": "set_default_prim",
+     "prim_path": "/World"
+    }
+   ]
+  },
+  "noop-10": {
+   "citations": [],
+   "decision": "edit",
+   "operations": [
+    {
+     "op": "set_up_axis_metadata",
+     "token": "Z"
+    }
+   ]
+  },
+  "noop-11": {
+   "citations": [],
+   "decision": "edit",
+   "operations": [
+    {
+     "op": "set_default_prim",
+     "prim_path": "/World"
+    }
+   ]
+  },
+  "noop-12": {
+   "citations": [],
+   "decision": "edit",
+   "operations": [
+    {
+     "op": "set_up_axis_geometry",
+     "token": "Z"
+    }
+   ]
+  },
+  "noop-13": {
+   "citations": [],
+   "decision": "edit",
+   "operations": [
+    {
+     "op": "set_default_prim",
+     "prim_path": "/World"
+    }
+   ]
+  },
+  "noop-14": {
+   "citations": [],
+   "decision": "edit",
+   "operations": [
+    {
+     "op": "set_up_axis_metadata",
+     "token": "Z"
+    }
+   ]
+  },
   "units-geom-02": {
    "citations": [],
    "decision": "no-op",
@@ -369,7 +585,17 @@
     }
    ]
   },
+  "units-meta-06": {
+   "citations": [],
+   "decision": "no-op",
+   "operations": []
+  },
   "up-axis-geom-03": {
+   "citations": [],
+   "decision": "no-op",
+   "operations": []
+  },
+  "up-axis-geom-04": {
    "citations": [],
    "decision": "no-op",
    "operations": []
@@ -390,6 +616,11 @@
    ]
   },
   "up-axis-meta-05": {
+   "citations": [],
+   "decision": "no-op",
+   "operations": []
+  },
+  "up-axis-meta-06": {
    "citations": [],
    "decision": "no-op",
    "operations": []
