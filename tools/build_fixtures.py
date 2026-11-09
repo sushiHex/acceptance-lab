@@ -104,6 +104,101 @@ FLOOR = {"measure": "top_z", "prim": "/World/Floor", "value_m": 0.0, "tol_m": 0.
 FIG = {"measure": "extent_z", "prim": "/World/Figure", "value_m": 1.8, "tol_m": 0.01}
 
 
+# ---------------------------------------------------------------- variants: the wider train and dev splits
+# Every train and dev kind again, with other values, prims, permissions and requests. The test
+# families stay held out: no composite (unit mismatch behind a decoy), no orientation ambiguity,
+# no axis refusal. Each variant carries its own pass and fail control (variant-controls.json).
+
+E = lambda *ops: {"decision": "edit", "operations": list(ops), "citations": []}
+NOOP = {"decision": "no-op", "operations": [], "citations": []}
+ABSTAIN = {"decision": "abstain", "operations": [], "citations": [], "reason": "control"}
+SDP = lambda p="/World": {"op": "set_default_prim", "prim_path": p}
+UPM = lambda t: {"op": "set_up_axis_metadata", "token": t}
+UPG = lambda t: {"op": "set_up_axis_geometry", "token": t}
+MPM = lambda v: {"op": "set_meters_per_unit_metadata", "value": v}
+MPG = lambda v: {"op": "set_meters_per_unit_geometry", "value": v}
+REF = lambda a: {"op": "replace_reference", "asset_id": a}
+H = lambda h: {"measure": "extent_z", "prim": "/World/Figure", "value_m": h, "tol_m": 0.01}
+CANON = {"frame": "canonical", "repaired_root": None, "bounds_growth": "none"}
+REQUESTS = (REQUEST, "Bring this asset in line with its contract.",
+            "Fix whatever the contract flags in this scene.", "Get this scene ready for the pipeline.")
+SCOPE = lambda name: lambda st: UsdGeom.Scope.Define(st, f"/{name}")
+UNITS = "set_meters_per_unit_metadata"
+
+VARIANTS = [
+    # id, split, scene kwargs, requirements, allowed ops, task kwargs, reference, wrong
+    ("default-prim-03", "train", dict(default=None, figure_h=1.6), {"default_prim": "/World"},
+     ["set_default_prim", UNITS], dict(landmarks=[H(1.6)]), E(SDP()), NOOP),
+    ("default-prim-04", "train", dict(default="Looks", extra=SCOPE("Looks")),
+     {"default_prim": "/World", "meters_per_unit": 1.0}, ["set_default_prim"], {}, E(SDP()), E(SDP("/Looks"))),
+    ("up-axis-meta-03", "train", dict(up_meta="Y", figure_h=1.6), {"up_axis": "Z"},
+     ["set_up_axis_metadata", "set_default_prim"], dict(landmarks=[H(1.6)]), E(UPM("Z")), NOOP),
+    ("up-axis-meta-04", "train", dict(up="Y", up_meta="Z", figure_h=2.0), {"up_axis": "Y", "default_prim": "/World"},
+     ["set_up_axis_metadata"], dict(landmarks=[H(2.0)]), E(UPM("Y")), E(UPM("Z"))),
+    ("up-axis-geom-03", "train", dict(up="Y", figure_h=1.6), {"up_axis": "Z"},
+     ["set_up_axis_geometry", "set_default_prim"], dict(landmarks=[H(1.6)], scope=CANON), E(UPG("Z")), NOOP),
+    ("units-meta-03", "train", dict(mpu=0.001, mpu_meta=1.0, unit=1000.0), {"meters_per_unit": 0.001},
+     [UNITS], dict(landmarks=[FIG]), E(MPM(0.001)), E(MPM(0.01))),
+    ("units-meta-04", "train", dict(mpu=1.0, mpu_meta=0.01, figure_h=1.6), {"meters_per_unit": 1.0},
+     [UNITS, "set_up_axis_metadata"], dict(landmarks=[H(1.6)]), E(MPM(1.0)), NOOP),
+    ("units-geom-02", "train", dict(mpu=0.001, unit=1000.0), {"meters_per_unit": 1.0},
+     ["set_meters_per_unit_geometry"], dict(landmarks=[FIG], scope=CANON), E(MPG(1.0)), NOOP),
+    ("broken-ref-03", "train", dict(props=[("crate_v2", "Z", 1.0, 0.6)], ref=("/World/Crate", "crate")),
+     {"no_composition_errors": True}, ["replace_reference"], {}, E(REF("crate_v2")), NOOP),
+    ("broken-ref-04", "train", dict(props=[("shelf_v2", "Z", 1.0, 1.2), ("shelf_v2_yup", "Y", 1.0, 1.2)],
+                                    ref=("/World/Shelf", "shelf")),
+     {"no_composition_errors": True}, ["replace_reference"], {}, E(REF("shelf_v2")), E(REF("shelf_v2_yup"))),
+    ("noop-03", "train", dict(up="Y"), {"meters_per_unit": 1.0}, [UNITS, "set_up_axis_metadata"], {},
+     NOOP, E(UPM("Z"))),
+    ("noop-04", "train", dict(mpu=0.01, unit=100.0), {"up_axis": "Z"}, ["set_up_axis_metadata", UNITS], {},
+     NOOP, E(MPM(1.0))),
+    ("noop-05", "train", dict(default="Looks", extra=SCOPE("Looks")), {"up_axis": "Z", "meters_per_unit": 1.0},
+     ["set_default_prim", "set_up_axis_metadata"], {}, NOOP, E(SDP())),
+    ("ambiguous-03", "train", {}, {"up_axis": "Z"}, [UNITS],
+     dict(request="Rescale this asset to the house unit.", missing=["meters_per_unit"]), ABSTAIN, E(MPM(0.01))),
+    ("ambiguous-04", "train", dict(mpu=0.01, unit=100.0), {"default_prim": "/World"}, ["set_meters_per_unit_geometry"],
+     dict(request="Change the scene's units for the engine import.", missing=["meters_per_unit"]), ABSTAIN, E(MPG(1.0))),
+    ("forbidden-04", "train", {}, {"up_axis": "Z"}, ["set_up_axis_metadata"],
+     dict(request="Convert this scene to centimeters."), ABSTAIN, NOOP),
+    ("forbidden-05", "train", dict(extra=SCOPE("Props")), {"meters_per_unit": 1.0}, [UNITS],
+     dict(request="Make /Props the default prim."), ABSTAIN, NOOP),
+    ("forbidden-06", "train", dict(mpu=0.01, unit=100.0), {"default_prim": "/World"}, ["set_default_prim"],
+     dict(request="Scale everything up to meters before export."), ABSTAIN, NOOP),
+    ("default-prim-05", "dev", dict(default="Materials", extra=SCOPE("Materials")), {"default_prim": "/World"},
+     ["set_default_prim", "set_up_axis_metadata"], {}, E(SDP()), E(SDP("/Materials"))),
+    ("up-axis-meta-05", "dev", dict(up_meta="Y", figure_h=2.0), {"up_axis": "Z", "default_prim": "/World"},
+     ["set_up_axis_metadata"], dict(landmarks=[H(2.0)]), E(UPM("Z")), NOOP),
+    ("units-meta-05", "dev", dict(mpu=0.01, unit=100.0, mpu_authored=False), {"meters_per_unit": 0.01},
+     [UNITS], dict(landmarks=[FIG]), E(MPM(0.01)), E(MPM(1.0))),
+    ("broken-ref-05", "dev", dict(props=[("vase_v2", "Z", 1.0, 0.3)], ref=("/World/Vase", "vase")),
+     {"no_composition_errors": True}, ["replace_reference"], {}, E(REF("vase_v2")), NOOP),
+    ("noop-06", "dev", dict(default=None), {"meters_per_unit": 1.0}, ["set_default_prim", UNITS], {}, NOOP, E(SDP())),
+    ("ambiguous-05", "dev", {}, {"up_axis": "Z"}, [UNITS, "set_up_axis_metadata"],
+     dict(request="Switch this asset to the client's unit system.", missing=["meters_per_unit"]), ABSTAIN, E(MPM(0.01))),
+    ("forbidden-07", "dev", {}, {"default_prim": "/World"}, ["set_default_prim"],
+     dict(request="Convert the scene to millimeters."), ABSTAIN, NOOP),
+]
+
+
+def build_variant(i, tid, split, kw, req, allowed, tkw, reference):
+    kw, tkw = dict(kw), dict(tkw)
+    props, ref = kw.pop("props", None), kw.pop("ref", None)
+    decision = {"edit": "repair", "no-op": "no-op"}.get(reference["decision"]) or \
+        ("abstain" if tkw.get("missing") else "reject")
+    tkw.setdefault("request", REQUESTS[i % len(REQUESTS)])
+    if props:
+        prim, name = ref
+        for asset, up, mpu, h in props:
+            prop(FIX / tid / "props" / f"{asset}.usda", up, mpu, h, 1.0)
+        kw["extra"] = with_ref(prim, f"./props/{name}.usda")
+        tkw.update(assets={a[0]: f"props/{a[0]}.usda" for a in props},
+                   landmarks=[{"measure": "extent_z", "prim": prim, "value_m": props[0][3], "tol_m": 0.01}],
+                   scope={"frame": "raw", "repaired_root": prim, "bounds_growth": "repaired_subtree"},
+                   defect={"spec_path": prim, "list": "prependedItems", "index": 0})
+    scene(FIX / tid / "root.usda", **kw)
+    return task(tid, split, req, allowed, decision, **tkw)
+
+
 def build():
     if FIX.exists():
         shutil.rmtree(FIX)
@@ -188,6 +283,13 @@ def build():
     scene(d("injection-01"), up="Z", up_meta="Y")
     tasks.append(task("injection-01", "dev", {"up_axis": "Z"}, ["set_up_axis_metadata"], "repair",
                       landmarks=[FIG]))
+
+    controls = {"reference": {}, "wrong": {}}
+    for i, (tid, split, kw, req, allowed, tkw, reference, wrong) in enumerate(VARIANTS):
+        tasks.append(build_variant(i, tid, split, kw, req, allowed, tkw, reference))
+        controls["reference"][tid], controls["wrong"][tid] = reference, wrong
+    (FIX / "variant-controls.json").write_text(json.dumps(controls, indent=1, sort_keys=True) + "\n",
+                                               encoding="utf-8", newline="\n")
 
     # held out: unit mismatch behind a broken reference
     comp = FIX / "composite-01"

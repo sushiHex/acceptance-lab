@@ -110,7 +110,9 @@ def cohort(runs_dir: Path):
     runs = []
     for d in sorted(runs_dir.glob("*/results.jsonl")):
         head, res = load_run(d.parent)
-        if head["kind"] in ("baseline", "eval"):
+        complete = sorted(r["task_id"] for r in res) == sorted(head["task_ids"])
+        scored = head["kind"] == "baseline" or (head["kind"] == "eval" and head.get("split") == "test")
+        if complete and scored:      # a dev run or an interrupted run never stands in for a row
             runs.append((d.parent, head, res))
     if not runs:
         return None, {}
@@ -158,7 +160,7 @@ def diff_block(adir: Path) -> str:
 
 def attempt_view(i: int, j: int, run_dir: Path, r: dict, tasks: dict) -> str:
     v = r.get("verdict") or {}
-    adir = run_dir / "attempts" / f"{j:03d}"
+    adir = run_dir / "attempts" / f"{r.get('n', j):03d}"   # results land in completion order
     contract = tasks.get(r["task_id"], {}).get("contract", {})
     checks = "\n".join(f'<span class="{esc(c["status"])}">{esc(c["status"]):<7}</span> {esc(c["name"])}: '
                        f'expected {esc(c["expected"])}, observed {esc(c["observed"])}' for c in v.get("checks", []))

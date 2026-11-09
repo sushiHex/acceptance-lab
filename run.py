@@ -96,8 +96,10 @@ def free_port() -> int:
 
 def start_judge(run_dir: Path):
     port = free_port()
-    proc = subprocess.Popen([PY, str(ROOT / "protocols.py"), "judge", str(run_dir), str(port)],
-                            cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    log = run_dir / "judge.log"    # a file, not a pipe: pxr warnings filled an unread pipe and stalled the judge
+    with log.open("wb") as err:
+        proc = subprocess.Popen([PY, str(ROOT / "protocols.py"), "judge", str(run_dir), str(port)],
+                                cwd=ROOT, stdout=subprocess.DEVNULL, stderr=err)
     url = f"http://127.0.0.1:{port}/.well-known/agent-card.json"
     for _ in range(200):
         try:
@@ -105,7 +107,7 @@ def start_judge(run_dir: Path):
             return proc, port
         except Exception:  # noqa: BLE001
             if proc.poll() is not None:
-                raise RuntimeError("judge exited: " + proc.stderr.read().decode(errors="replace")[-500:])
+                raise RuntimeError("judge exited: " + log.read_text(encoding="utf-8", errors="replace")[-500:])
             time.sleep(0.1)
     proc.kill()
     raise RuntimeError("judge did not become ready")
@@ -161,7 +163,9 @@ async def attempt(run_dir: Path, card, task: dict, n: int, propose, label: str, 
     reg_file = run_dir / "registry.json"
     reg = json.loads(reg_file.read_text(encoding="utf-8")) if reg_file.exists() else {}
     reg[attempt_id] = {"task_id": task["id"], "dir": f"attempts/{n:03d}", "contract": contract}
-    reg_file.write_text(json.dumps(reg), encoding="utf-8")
+    tmp = reg_file.with_suffix(f".{n}.tmp")      # the judge process reads this file: publish atomically
+    tmp.write_text(json.dumps(reg), encoding="utf-8")
+    os.replace(tmp, reg_file)
 
     trace = {"error_code": None, "latency_s": None, "model_latency_s": None, "usage": None}
     t0 = time.perf_counter()
@@ -196,7 +200,7 @@ async def attempt(run_dir: Path, card, task: dict, n: int, propose, label: str, 
     trace["latency_s"] = round(time.perf_counter() - t0, 3)
     receipt_file = adir / "receipt.json"
     receipt = json.loads(receipt_file.read_text(encoding="utf-8")) if receipt_file.exists() else None
-    return {"task_id": task["id"], "split": task["split"], "attempt": attempt_id, "model_route": label,
+    return {"task_id": task["id"], "split": task["split"], "attempt": attempt_id, "n": n, "model_route": label,
             "expectation": (verdict or {}).get("decision") or task["expectation"].get("decision"),
             "proposal": proposal, "receipt": receipt, "trace": trace, "verdict": verdict,
             "model_success": scene.model_success(verdict, receipt)}
@@ -232,7 +236,10 @@ def header(label: str, kind: str, tasks: list, split: str | None, route: dict | 
                        "task_ids": [t["id"] for t in tasks], "versions": versions, "route": route}}
 
 
-async def run_tasks(label: str, kind: str, tasks: list, propose, split=None, contract=None, route=None) -> Path:
+async def run_tasks(label: str, kind: str, tasks: list, propose, split=None, contract=None, route=None,
+                    concurrency: int = 1) -> Path:
+    """concurrency > 1 runs attempts side by side (sampling for training). Table rows keep 1, so
+    the latency column measures one request at a time."""
     run_dir = new_run(label)
     results = run_dir / "results.jsonl"
     with results.open("w", encoding="utf-8", newline="\n") as f:
@@ -244,11 +251,15 @@ async def run_tasks(label: str, kind: str, tasks: list, propose, split=None, con
     import report
     try:
         print(f"{kind} {run_dir.name}  {label}  N={len(tasks)}")
-        for n, t in enumerate(tasks):
-            r = await attempt(run_dir, card, t, n, propose, label, contract=contract)
+        gate = asyncio.Semaphore(concurrency)
+
+        async def one(n, t):
+            async with gate:
+                r = await attempt(run_dir, card, t, n, propose, label, contract=contract)
             with results.open("a", encoding="utf-8", newline="\n") as f:
                 f.write(json.dumps(r) + "\n")
             print(report.log_line(r))
+        await asyncio.gather(*(one(n, t) for n, t in enumerate(tasks)))
     finally:
         proc.kill()
         proc.wait()

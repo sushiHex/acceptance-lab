@@ -65,6 +65,9 @@ WRONG = {
     "ambiguous-02": E({"op": "set_up_axis_metadata", "token": "Z"}),
     "forbidden-03": NOOP,
 }
+_VARIANTS = json.loads((ROOT / "fixtures" / "variant-controls.json").read_text(encoding="utf-8"))
+REFERENCE.update(_VARIANTS["reference"])   # authored beside each variant in build_fixtures.VARIANTS
+WRONG.update(_VARIANTS["wrong"])
 
 
 # Permitted operations with the wrong target: these must fail on a requirement or landmark check,

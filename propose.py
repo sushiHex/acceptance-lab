@@ -185,12 +185,11 @@ async def rail_check(text: str, attempt_id: str, contract: dict) -> dict:
     """PASSED only if the rail ran exactly once for this attempt and passed; a rail that never
     ran also reports PASSED, so not running is treated as blocked."""
     from nemoguardrails.rails.llm.options import RailType
-    n = len(RAIL_CALLS)
     r = await rails().check_async(
         [{"role": "context", "content": {"attempt_id": attempt_id, "contract": contract}},
          {"role": "user", "content": "proposal"}, {"role": "assistant", "content": text}],
         rail_types=[RailType.OUTPUT])
-    ran = RAIL_CALLS[n:] == [attempt_id]
+    ran = RAIL_CALLS.count(attempt_id) == 1      # attempt ids are unique, so this holds under concurrency
     status = str(getattr(r, "status", r)).split(".")[-1].upper()
     return {"status": status if ran else "NOT_RUN", "rail": getattr(r, "rail", None), "ran": ran,
             "passed": ran and "PASS" in status}
@@ -212,10 +211,11 @@ def run_info(base_url: str, model: str, structured: bool = False, temperature: f
 
 
 def make_proposer(base_url: str, model: str, *, structured: bool = False, temperature: float = 0,
-                  timeout: float = 120, max_tokens: int = 512):
+                  repair: bool = True, timeout: float = 120, max_tokens: int = 512):
     """structured: the server constrains decoding to proposal_json_schema() (OpenAI
     response_format, which vLLM and NIM both honour). The prompt is unchanged, so the row
-    differs from the plain one by the constraint alone."""
+    differs from the plain one by the constraint alone. repair=False keeps the one turn a
+    policy-gradient sample must be: the reply that was graded is the reply that was sampled."""
     import openai
     from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
     from langchain_openai import ChatOpenAI
@@ -231,9 +231,10 @@ def make_proposer(base_url: str, model: str, *, structured: bool = False, temper
         trace = {"execution_allowed": False, "retrieved": [{"id": c["id"], "score": c["score"]} for c in chunks],
                  "turns": 0, "usage": {"input_tokens": 0, "output_tokens": 0}, "model_latency_s": 0.0,
                  "guardrails_tokens": 0}
-        messages = [SystemMessage(SYSTEM), HumanMessage(format_prompt(vis, chunks))]
+        trace["prompt"] = format_prompt(vis, chunks)    # kept, so training conditions on what was sent
+        messages = [SystemMessage(SYSTEM), HumanMessage(trace["prompt"])]
         proposal = content = None
-        for turn in range(2):
+        for turn in range(2 if repair else 1):
             t0 = time.perf_counter()
             try:
                 msg = await llm.ainvoke(messages)
@@ -248,6 +249,8 @@ def make_proposer(base_url: str, model: str, *, structured: bool = False, temper
             for k in ("input_tokens", "output_tokens"):
                 trace["usage"][k] += (msg.usage_metadata or {}).get(k, 0)
             content = msg.content if isinstance(msg.content, str) else json.dumps(msg.content)
+            trace.setdefault("replies", []).append(
+                {"content": content, "finish_reason": (msg.response_metadata or {}).get("finish_reason")})
             proposal, why = parse(content.strip())
             if proposal is not None:
                 break
