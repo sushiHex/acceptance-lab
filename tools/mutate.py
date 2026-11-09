@@ -12,6 +12,10 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # (file, original text, mutated text, test that must fail)
 MUTATIONS = [
+    ("tools/grpo.py",
+     "    return None if all(x == mean for x in rewards) else [x - mean for x in rewards]",
+     "    return rewards",
+     "test_grpo_reward_is_group_relative_judge_success"),
     ("propose.py",
      "\"properties\": {\"decision\": {\"enum\": sorted(scene.DECISIONS)},",
      "\"properties\": {\"decision\": {\"enum\": sorted(scene.DECISIONS - {\"abstain\"})},",

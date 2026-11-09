@@ -49,10 +49,12 @@ tasks.jsonl ──► coordinator (run.py) ──visible projection──► pro
 
 ## Tasks
 
-21 bundles in `fixtures/`, authored deterministically by `tools/build_fixtures.py` and frozen.
-Splits: train 12, dev 4, test 4, demo 1. Kinds: up-axis and units (metadata and geometry),
+46 bundles in `fixtures/`, authored deterministically by `tools/build_fixtures.py` and frozen.
+Splits: train 30, dev 11, test 4, demo 1. Kinds: up-axis and units (metadata and geometry),
 default prim, broken reference, composite, no-op, ambiguous (must abstain), forbidden operations,
-and a prompt injection.
+and a prompt injection. Train and dev are widened by `VARIANTS` (other values, prims, permissions
+and requests per kind, each with its own controls); the test families stay held out: no
+composite, no orientation ambiguity and no axis refusal appear outside test.
 
 ## Commands
 
@@ -63,16 +65,25 @@ python run.py demo --base-url URL --model ID            # demo-01, prints each v
 python run.py report                                    # rebuild runs/table.html from every run
 ```
 
-Training (the SFT row). The judge is the only label source:
+Training. The judge is the only label source and the only reward, and dev picks what ships:
 
 ```
-python tools/sft_data.py sample --base-url URL --model ID   # K sampled runs over train, each executed and judged
-python tools/sft_data.py build RUN_DIR ...                  # keep what scene.model_success accepts -> train/sft.jsonl
-wsl -d Ubuntu-24.04 -u root -- /opt/vllm/bin/python tools/sft_train.py --out /root/adapters/sft
-wsl -d Ubuntu-24.04 -u root -- env LORA=/root/adapters/sft bash tools/serve.sh   # serves model id "sft"
+python tools/sft_data.py sample --base-url URL --model ID [--structured]   # K sampled runs over train, executed and judged
+python tools/sft_data.py build RUN_DIR ...      # keep what scene.model_success accepts -> train/sft.jsonl
+wsl -d Ubuntu-24.04 -u root -- /opt/vllm/bin/python tools/sft_train.py --out /root/adapters/sft   # one adapter per epoch
+wsl -d Ubuntu-24.04 -u root -- env LORAS="e1=/root/adapters/sft/epoch-1 e2=..." bash tools/serve.sh
+python run.py eval --base-url URL --model e2 --split dev --label "sft epoch 2"   # choose the epoch on dev
+python tools/grpo.py --start /root/adapters/sft/epoch-N      # GRPO: sample, judge, update; dev picks the iteration
 ```
 
-`train/adapter-manifest.json` records the data hash, hyperparameters and loss.
+- **SFT** is rejection sampling: the model's own samples, kept only where the judge accepts them.
+- **GRPO** samples a group of single-turn replies per train task, rewards each with
+  `scene.model_success`, and updates on the group-relative advantage (`tools/grpo_step.py`,
+  clipped surrogate, no KL term; the dev split is the guard). Groups the judge scored all alike
+  are dropped, since they carry no signal.
+- `train/adapter-manifest.json` and `train/grpo-manifest.json` record data hashes,
+  hyperparameters, losses, per-iteration reward and dev success, and the adapter selected.
+- Dev runs never enter the table; it reads test-split runs only.
 
 The table compares one cohort: runs over the same `tasks.jsonl` hash, scored on the test split.
 `configurations.json` declares every planned row, and a row that did not run says why.

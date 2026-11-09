@@ -1,0 +1,134 @@
+{
+  "start": "/root/adapters/sft/epoch-4",
+  "group": 8,
+  "reward": "scene.model_success",
+  "iterations": [
+    {
+      "iteration": 0,
+      "adapter": "/root/adapters/sft/epoch-4",
+      "dev_success": 10,
+      "dev_n": 11,
+      "train_reward": 0.9532,
+      "groups_with_signal": 7,
+      "groups": 30,
+      "unmeasured": 5,
+      "step": {
+        "hyperparameters": {
+          "lr": 2e-05,
+          "clip": 0.2,
+          "minibatch": 16,
+          "epochs": 1,
+          "max_grad_norm": 1.0,
+          "seed": 0
+        },
+        "rows": 54,
+        "steps": 4,
+        "clipped": 51,
+        "tokens": 2152
+      }
+    },
+    {
+      "iteration": 1,
+      "adapter": "/root/adapters/grpo/iter-1",
+      "dev_success": 9,
+      "dev_n": 11,
+      "train_reward": 0.9614,
+      "groups_with_signal": 3,
+      "groups": 30,
+      "unmeasured": 7,
+      "step": {
+        "hyperparameters": {
+          "lr": 2e-05,
+          "clip": 0.2,
+          "minibatch": 16,
+          "epochs": 1,
+          "max_grad_norm": 1.0,
+          "seed": 0
+        },
+        "rows": 24,
+        "steps": 2,
+        "clipped": 19,
+        "tokens": 1837
+      }
+    },
+    {
+      "iteration": 2,
+      "adapter": "/root/adapters/grpo/iter-2",
+      "dev_success": 10,
+      "dev_n": 11,
+      "train_reward": 0.9785,
+      "groups_with_signal": 3,
+      "groups": 30,
+      "unmeasured": 7,
+      "step": {
+        "hyperparameters": {
+          "lr": 2e-05,
+          "clip": 0.2,
+          "minibatch": 16,
+          "epochs": 1,
+          "max_grad_norm": 1.0,
+          "seed": 0
+        },
+        "rows": 24,
+        "steps": 2,
+        "clipped": 1,
+        "tokens": 1135
+      }
+    },
+    {
+      "iteration": 3,
+      "adapter": "/root/adapters/grpo/iter-3",
+      "dev_success": 10,
+      "dev_n": 11,
+      "train_reward": 0.9957,
+      "groups_with_signal": 1,
+      "groups": 30,
+      "unmeasured": 7,
+      "step": {
+        "hyperparameters": {
+          "lr": 2e-05,
+          "clip": 0.2,
+          "minibatch": 16,
+          "epochs": 1,
+          "max_grad_norm": 1.0,
+          "seed": 0
+        },
+        "rows": 8,
+        "steps": 1,
+        "clipped": 0,
+        "tokens": 355
+      }
+    },
+    {
+      "iteration": 4,
+      "adapter": "/root/adapters/grpo/iter-4",
+      "dev_success": 10,
+      "dev_n": 11,
+      "train_reward": 0.9957,
+      "groups_with_signal": 1,
+      "groups": 30,
+      "unmeasured": 7,
+      "step": {
+        "hyperparameters": {
+          "lr": 2e-05,
+          "clip": 0.2,
+          "minibatch": 16,
+          "epochs": 1,
+          "max_grad_norm": 1.0,
+          "seed": 0
+        },
+        "rows": 8,
+        "steps": 1,
+        "clipped": 0,
+        "tokens": 315
+      }
+    },
+    {
+      "iteration": 5,
+      "adapter": "/root/adapters/grpo/iter-5",
+      "dev_success": 10,
+      "dev_n": 11
+    }
+  ],
+  "selected": "/root/adapters/sft/epoch-4"
+}

@@ -201,6 +201,18 @@ class Boundaries(unittest.TestCase):
         self.assertEqual(r["preserved"], "N/A")         # a timeout before execution is not in M
         self.assertFalse(scene.model_success(None, None))
 
+    def test_grpo_reward_is_group_relative_judge_success(self):
+        """Mutation: advantages() returns the raw reward -> a group the judge scored all alike
+        trains, and a contained (blocked) reply counts as rewarded."""
+        sys.path.insert(0, str(ROOT / "tools"))
+        from grpo import advantages
+        r = lambda ok: {"model_success": ok}
+        self.assertIsNone(advantages([r(True)] * 4))
+        self.assertIsNone(advantages([r(False)] * 4))
+        adv = advantages([r(True), r(False), r(False), r(False)])
+        self.assertAlmostEqual(sum(adv), 0.0)
+        self.assertEqual([a > 0 for a in adv], [True, False, False, False])
+
     def test_decoding_schema_matches_the_contract_vocabulary(self):
         """Mutation: the structured-outputs schema drifts from scene (a decision or an op the
         executor does not know, or one it knows that the model can no longer emit)."""
