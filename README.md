@@ -31,6 +31,9 @@ tasks.jsonl ──► coordinator (run.py) ──visible projection──► pro
   result with the same checks the contract names. It never mutates anything. A repair passes only
   if every operation serves a requirement the original fails (`expectation.minimal`), so tidying a
   field the contract does not name is a failure, in grading and in the training reward alike.
+  The check maps each operation to one requirement (`scene.SERVES`), so it is coarse: it does not
+  catch a duplicated operation, and it would fail a prerequisite step or a reference repair made
+  to satisfy a default-prim check. No shipped task needs either.
 - **One preflight** (`scene.preflight`) decides whether an operation is permitted. The executor,
   the judge and the Guardrails rail all call it, so there is one definition of "allowed".
 
