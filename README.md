@@ -2,7 +2,7 @@
 
 # acceptance-lab
 
-**A small model repairs OpenUSD scenes. A judge grades each repair against a written contract.**
+**A small model repairs OpenUSD (Open Universal Scene Description) scenes. A judge grades each repair against a written contract.**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-3b4752?style=flat-square)](LICENSE)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-3b4752?style=flat-square)](https://www.python.org/)
@@ -42,17 +42,18 @@ model's own report of success is never used.
 |:--:|:--|:--|
 | | **Contract** | One JSON file per task: the requirements, the properties that must not change, and the operations the agent may use. Each task also has an **expectation the model never sees**: the correct decision and the measurements the judge checks. |
 | 1 | **Model** | [**Nemotron Nano 4B**](https://huggingface.co/nvidia/Llama-3.1-Nemotron-Nano-4B-v1.1) on vLLM, through LangChain. It gets the request, the contract and the scene facts, and returns one JSON proposal. It gets one retry if the reply does not parse. |
-| 2 | **Guard** | One preflight function decides whether an operation is permitted. A [**NeMo Guardrails**](https://github.com/NVIDIA-NeMo/Guardrails) output rail, the executor and the judge all call it. The rail makes no LLM call. If it does not run, nothing executes. |
-| 3 | **Executor** | An MCP server, one process per attempt. It edits scenes with OpenUSD from the [**OpenUSD Exchange SDK**](https://docs.omniverse.nvidia.com/usd/code-docs/usd-exchange-sdk/latest/index.html) package. It applies the whole proposal or blocks it, and writes a receipt. |
-| 4 | **Judge** | An A2A agent that runs the checks the contract names. It returns `accepted` or `failed`, with each check. It never writes a file. |
+| 2 | **Guard** | One preflight function decides whether an operation is permitted. A [**NeMo Guardrails**](https://github.com/NVIDIA-NeMo/Guardrails) output rail, the executor and the judge all call it. The rail makes no LLM (large language model) call. If it does not run, nothing executes. |
+| 3 | **Executor** | An MCP (Model Context Protocol) server, one process per attempt. It edits scenes with OpenUSD from the [**OpenUSD Exchange SDK**](https://docs.omniverse.nvidia.com/usd/code-docs/usd-exchange-sdk/latest/index.html) package. It applies the whole proposal or blocks it, and writes a receipt. |
+| 4 | **Judge** | An A2A (Agent2Agent protocol) agent that runs the checks the contract names. It returns `accepted` or `failed`, with each check. It never writes a file. |
 
 **60 tasks** across train, dev and test, plus one demo task: axis, units, default prim, broken
 references, scenes that need no change, ambiguous requests the model must refuse, forbidden
 requests, a prompt injection and a composite repair. **Three task families occur only in test:**
 the composite repair, an ambiguity about the axis, and a forbidden axis change.
 
-**Training** uses the judge's verdict and the executor's receipt as the only signal. SFT keeps the
-model's samples that the judge accepted. GRPO uses the same reading as its reward. The dev split
+**Training** uses the judge's verdict and the executor's receipt as the only signal. SFT (supervised fine-tuning) keeps the
+model's samples that the judge accepted. GRPO (Group Relative Policy Optimization) uses the same
+reading as its reward. The dev split
 selects the adapter.
 
 ## Results
