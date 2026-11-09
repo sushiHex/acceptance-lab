@@ -25,7 +25,7 @@ Write "done" down once, as data, and use that same data for every decision about
 
 ## What I built
 
-![The contract feeds the judge, the shared preflight and the training reward. Each task runs Nemotron Nano 4B on vLLM, a NeMo Guardrails rail, an MCP executor and an A2A judge.](docs/assets/acceptance-loop.svg)
+![The acceptance contract is used for grading, guarding and training. Each task goes from Nemotron Nano 4B on vLLM, through a NeMo Guardrails rail and an MCP executor, to an A2A judge.](docs/assets/acceptance-loop.svg)
 
 - **The contract** is a JSON file per task. It lists the requirements, the properties that must not
   change, and the operations the agent may use.

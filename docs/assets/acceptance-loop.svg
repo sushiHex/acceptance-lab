@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="470" viewBox="0 0 1200 470" role="img" aria-labelledby="title desc">
   <title id="title">How the acceptance contract is used</title>
-  <desc id="desc">The acceptance contract is data: requirements, what must be preserved, and which operations are allowed. The same contract grades the agent through an A2A judge, guards it through one shared preflight used by the executor, the NeMo Guardrails rail and the judge, and trains it because the judge's verdict is the only label and the only reward for SFT and GRPO. Each task runs from Nemotron Nano 4B on vLLM, through the Guardrails rail and the MCP executor, to the A2A judge.</desc>
+  <desc id="desc">Each task has an acceptance contract in JSON: requirements, properties to keep, and permitted operations. The contract is used three ways. An A2A judge grades the repaired scene against it. One shared preflight check, used by the executor, the NeMo Guardrails rail and the judge, decides which operations are permitted. The judge's verdict is the training signal: SFT uses only accepted samples, and GRPO uses the verdict as its reward. Each task goes from Nemotron Nano 4B on vLLM, through the Guardrails rail and the MCP executor, to the A2A judge.</desc>
   <defs>
     <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M1 1L6 4L1 7" fill="none" stroke="#76b900" stroke-width="1.6"/></marker>
   </defs>
@@ -10,8 +10,8 @@
     <text x="1164" y="42" text-anchor="end" fill="#98a7b5" font-size="17" letter-spacing="1.2">acceptance-lab</text>
 
     <rect x="330" y="64" width="540" height="72" rx="10" fill="#202a34" stroke="#76b900" stroke-width="1.4"/>
-    <text x="600" y="94" text-anchor="middle" fill="#f4f7fa" font-size="20" font-weight="600">Acceptance contract, written as data</text>
-    <text x="600" y="119" text-anchor="middle" fill="#aab7c3" font-size="16">requirements · what to preserve · allowed operations</text>
+    <text x="600" y="94" text-anchor="middle" fill="#f4f7fa" font-size="20" font-weight="600">Acceptance contract (JSON)</text>
+    <text x="600" y="119" text-anchor="middle" fill="#aab7c3" font-size="16">requirements · properties to keep · permitted operations</text>
 
     <g fill="none" stroke="#76b900" stroke-width="2" marker-end="url(#arrow)">
       <path d="M420 138L222 176"/><path d="M600 138V176"/><path d="M780 138L978 176"/>
@@ -23,21 +23,21 @@
       <rect x="800" y="184" width="364" height="132" rx="9"/>
     </g>
     <g fill="#a5db48" font-size="15" font-weight="700" letter-spacing="1.6">
-      <text x="56" y="214">GRADES</text><text x="438" y="214">GUARDS</text><text x="820" y="214">TRAINS</text>
+      <text x="56" y="214">GRADING</text><text x="438" y="214">GUARDING</text><text x="820" y="214">TRAINING</text>
     </g>
     <g fill="#f4f7fa" font-size="18" font-weight="600">
-      <text x="56" y="242">A2A judge</text><text x="438" y="242">One preflight</text><text x="820" y="242">Judge verdict as reward</text>
+      <text x="56" y="242">A2A judge</text><text x="438" y="242">Shared preflight check</text><text x="820" y="242">Judge verdict as signal</text>
     </g>
     <g fill="#aab7c3" font-size="15">
-      <text x="56" y="268">Walks the repaired scene with the</text>
-      <text x="56" y="290">checks the contract names. Read-only.</text>
-      <text x="438" y="268">Executor, Guardrails rail and judge</text>
-      <text x="438" y="290">share one definition of "allowed".</text>
-      <text x="820" y="268">SFT keeps only accepted samples;</text>
-      <text x="820" y="290">GRPO is rewarded by the same check.</text>
+      <text x="56" y="268">Checks the repaired scene against</text>
+      <text x="56" y="290">each item. It cannot change files.</text>
+      <text x="438" y="268">The executor, rail and judge use</text>
+      <text x="438" y="290">the same permission check.</text>
+      <text x="820" y="268">SFT uses only accepted samples.</text>
+      <text x="820" y="290">GRPO uses the verdict as its reward.</text>
     </g>
 
-    <text x="36" y="358" fill="#dce5e8" font-size="15" font-weight="700" letter-spacing="1.6">EACH TASK</text>
+    <text x="36" y="358" fill="#dce5e8" font-size="15" font-weight="700" letter-spacing="1.6">TASK FLOW</text>
     <g fill="#202a34">
       <rect x="36" y="372" width="250" height="62" rx="9"/>
       <rect x="320" y="372" width="250" height="62" rx="9"/>
@@ -52,8 +52,8 @@
       <text x="729" y="399">MCP executor</text><text x="1026" y="399">A2A judge</text>
     </g>
     <g fill="#aab7c3" font-size="14" text-anchor="middle">
-      <text x="161" y="421">on vLLM: one JSON proposal</text><text x="445" y="421">output rail: preflight</text>
-      <text x="729" y="421">applies or refuses, writes receipt</text><text x="1026" y="421">accepted or failed, with checks</text>
+      <text x="161" y="421">on vLLM, sends a proposal</text><text x="445" y="421">runs the preflight check</text>
+      <text x="729" y="421">applies it or refuses it</text><text x="1026" y="421">returns accepted or failed</text>
     </g>
   </g>
 </svg>
