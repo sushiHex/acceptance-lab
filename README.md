@@ -1,17 +1,23 @@
-# Acceptance Lab
+# acceptance-lab
 
-A partner writes acceptance as data. The same data grades the agent, guards it, and trains it.
+**A partner writes acceptance as data. The same data grades the agent, guards it, and trains it.**
 
-The domain is OpenUSD scene repair: a request like "make this asset Y-up in meters with /World as
-its default prim" arrives with a machine-readable contract (requirements, what must be preserved,
-which operations are allowed). An agent proposes a repair; an executor applies it; a judge decides
-whether the result meets the contract. Nothing the model writes is ever trusted on its own word.
+An agent repairs OpenUSD scenes against a machine-readable contract. A request like "make this asset
+Y-up in meters with /World as its default prim" arrives with its requirements, what must be preserved,
+and which operations are allowed. The model proposes; an executor applies; a judge decides. Nothing
+the model writes is trusted on its own word.
+
+A companion to [stagewright](https://github.com/sushiHex/stagewright), which builds OpenUSD scenes
+from prompts. This project asks the next question: how do you know the agent did it right?
+
+![One acceptance contract feeds three jobs: an A2A judge grades, one shared preflight guards, and the verdict is the training reward. Each task runs Nemotron Nano 4B on vLLM, a NeMo Guardrails rail, an MCP executor and an A2A judge.](docs/assets/acceptance-loop.svg)
+
+[Results](#results) · [Technical guide](docs/guide.md) · [Quickstart](#quickstart)
 
 ## Results
 
-Held-out test split (4 tasks: a composite repair, a no-op, an orientation ambiguity that must be
-refused, and an axis conversion the contract forbids). *Accepted* is the judge's grade. *Model success* is the training reward: it gives
-no credit when the executor blocked a forbidden operation the model proposed.
+On the held-out test split (4 tasks: a composite repair, a no-op, an orientation ambiguity that must
+be refused, and an axis conversion the contract forbids):
 
 | Row | Accepted | Model success |
 |---|---|---|
@@ -19,143 +25,67 @@ no credit when the executor blocked a forbidden operation the model proposed.
 | scripted heuristic | 2/4 | |
 | Nemotron Nano 4B on vLLM | 3/4 | 2/4 |
 | + structured outputs | 3/4 | 2/4 |
-| + SFT adapter (judge-filtered samples, epoch 3 chosen on dev) | **4/4** | **4/4** |
+| + SFT adapter (judge-filtered samples, epoch chosen on dev) | **4/4** | **4/4** |
 | + GRPO adapter (judge as reward, iteration chosen on dev) | 3/4 | 3/4 |
 
-On dev (17 tasks), the SFT adapter is accepted on 16 and the GRPO adapter on 17. GRPO saturated
-the train split within five iterations: almost every sampled group was judged all alike, so the
-updates had no signal left. On test it blocked the composite task with a malformed operation.
-
-`demo-01` shows the contract driving behaviour. As shipped, it asks only for `up_axis: Z`, which
-the scene already meets, so the right answer is a no-op. The SFT adapter abstains and the judge
-fails it. Adding `default_prim: /World` to the contract turns the task into a repair. The same
-adapter then sets the default prim and passes all 12 checks. The model, the executor and the
-judge are unchanged; only the data moved.
-
-## How a task runs
-
-```
-tasks.jsonl ──► coordinator (run.py) ──visible projection──► proposer (baseline or model)
-                    │                                              │ proposal JSON
-                    │                                              ▼
-                    │                              Guardrails output rail (preflight)
-                    │ MCP (stdio)                                  │
-                    ├──────────► executor: inspect, finalize ◄─────┘
-                    │                 writes the repaired bundle + manifest.json
-                    │ A2A (HTTP)
-                    └──────────► judge: reads the frozen task and the attempt dir, returns a verdict
-```
-
-- **The model never sees a tool or a file.** It receives one allowlisted projection of the task
-  (`run.visible`: id, request, contract, approved asset ids, scene facts) and returns one JSON
-  proposal. The coordinator is the only MCP client and the only A2A client.
-- **The executor** (`protocols.py mcp`) is one MCP server process per attempt, bound to its attempt
-  directory at spawn. Two tools: `inspect` and `finalize(proposal, execution_allowed)`.
-- **The judge** (`protocols.py judge`) is an A2A agent. It gets only an attempt id, resolves it
-  through the run registry, reads the frozen `tasks.jsonl` and fixtures read-only, and walks the
-  result with the same checks the contract names. It never mutates anything. A repair passes only
-  if every operation serves a requirement the original fails (`expectation.minimal`), so tidying a
-  field the contract does not name is a failure, in grading and in the training reward alike.
-  The check maps each operation to one requirement (`scene.SERVES`), so it is coarse: it does not
-  catch a duplicated operation, and it would fail a prerequisite step or a reference repair made
-  to satisfy a default-prim check. No shipped task needs either.
-- **One preflight** (`scene.preflight`) decides whether an operation is permitted. The executor,
-  the judge and the Guardrails rail all call it, so there is one definition of "allowed".
-
-## The model lane (`propose.py`)
-
-- **Serving:** any OpenAI-compatible endpoint. The reference row is Nemotron Nano 4B v1.1 on vLLM.
-- **Client:** LangChain `ChatOpenAI`, temperature 0, no retries, system turn `detailed thinking off`.
-- **Strict parsing:** the reply must be exactly one valid proposal. One repair turn is allowed;
-  after that the attempt is `proposal_unparseable`. A leaked `<think>` block counts as a failure.
-- **Structured outputs (`--structured`):** the server constrains decoding to `proposal_json_schema()`
-  (OpenAI `response_format`). Same prompt, so it is its own row and differs by the constraint alone.
-- **Retrieval:** fastembed (`BAAI/bge-small-en-v1.5`) over `rules/rules.jsonl`. A task sees general
-  rules plus rules from its own split, top 3 above a cosine floor of 0.60. A chunk pinned to a task
-  always reaches that task, which is how the planted injection note in `injection-01` is delivered.
-- **Guardrails:** a NeMo Guardrails output rail (`guardrails/`) runs `scene.preflight` over the
-  proposal. It makes no LLM call. A rail that did not run counts as blocked, and a block on a
-  proposal preflight would permit is recorded as `rail_false_positive`.
-
-## Tasks
-
-61 bundles in `fixtures/`, authored deterministically by `tools/build_fixtures.py` and frozen.
-Splits: train 39, dev 17, test 4, demo 1. Kinds: up-axis and units (metadata and geometry),
-default prim, broken reference, composite, no-op, ambiguous (must abstain), forbidden operations,
-and a prompt injection. Train and dev are widened by `VARIANTS` (other values, prims, permissions
-and requests per kind, each with its own controls); the test families stay held out: no
-composite, no orientation ambiguity and no axis refusal appear outside test.
-
-## Commands
-
-```
-python run.py baseline                                  # always-abstain + scripted heuristic, then the table
-python run.py eval --base-url URL --model ID [--label L] [--split test] [--structured]
-python run.py demo --base-url URL --model ID            # demo-01, prints each verdict check
-python run.py report                                    # rebuild runs/table.html from every run
-```
-
-Training. The judge is the only label source and the only reward, and dev picks what ships:
-
-```
-python tools/sft_data.py sample --base-url URL --model ID [--structured]   # K sampled runs over train, executed and judged
-python tools/sft_data.py build RUN_DIR ...      # keep what scene.model_success accepts -> train/sft.jsonl
-wsl -d Ubuntu-24.04 -u root -- /opt/vllm/bin/python tools/sft_train.py --out /root/adapters/sft   # one adapter per epoch
-wsl -d Ubuntu-24.04 -u root -- env LORAS="e1=/root/adapters/sft/epoch-1 e2=..." bash tools/serve.sh
-python run.py eval --base-url URL --model e2 --split dev --label "sft epoch 2"   # choose the epoch on dev
-python tools/grpo.py --start /root/adapters/sft/epoch-N      # GRPO: sample, judge, update; dev picks the iteration
-```
+*Accepted* is the judge's grade. *Model success* is the training reward: it gives no credit when the
+executor had to block an operation the model proposed.
 
 - **SFT** is rejection sampling: the model's own samples, kept only where the judge accepts them.
-- **GRPO** samples a group of single-turn replies per train task, rewards each with
-  `scene.model_success`, and updates on the group-relative advantage (`tools/grpo_step.py`,
-  clipped surrogate, no KL term; the dev split is the guard). Groups the judge scored all alike
-  are dropped, since they carry no signal.
-- `train/adapter-manifest.json` and `train/grpo-manifest.json` record data hashes,
-  hyperparameters, losses, per-iteration reward and dev success, and the adapter selected.
-- Dev runs never enter the table; it reads test-split runs only.
+  On dev (17 tasks), the SFT adapter is accepted on 16.
+- **GRPO** reached 17 of 17 on dev, but it saturated the train split within five iterations:
+  almost every sampled group was judged all alike, so the updates had no signal left. On test it
+  proposed a malformed operation on the composite task, and the executor blocked it.
 
-The table compares one cohort: runs over the same `tasks.jsonl` hash, scored on the test split.
-`configurations.json` declares every planned row, and a row that did not run says why.
+**The contract drives the behaviour.** `demo-01` asks only for `up_axis: Z`. The scene already meets
+it, so the right answer is a no-op. The SFT adapter abstains, and the judge fails it. Adding
+`default_prim: /World` to the contract turns the task into a repair, and the same adapter then sets
+the default prim and passes all 12 checks. The model, executor and judge are unchanged; only the
+data moved.
 
-## Verification
+## The stack
 
-```
-python -m unittest test_lab -v        # boundary tests, each naming the mutation that breaks it
-python tools/mutate.py                # breaks the code on purpose; every guarding test must go red
-python tools/controls.py              # every fixture: a pass control accepted, a fail control rejected
-python tools/stub_model.py PORT MODE  # OpenAI-compatible test double: scripted | fence | junk | obey-notes
-```
+| Stage | Tools |
+|---|---|
+| Model | Nemotron Nano 4B v1.1, served by vLLM with LoRA adapters |
+| Proposer | LangChain `ChatOpenAI`, optional structured outputs, fastembed rule retrieval |
+| Guard | NeMo Guardrails output rail running the shared preflight |
+| Execute | MCP server, one process per attempt, OpenUSD (`pxr` from the OpenUSD Exchange SDK package) |
+| Judge | A2A agent, read-only over the frozen task and the attempt |
+| Train | PEFT LoRA SFT, and GRPO with the judge as the reward |
 
-The stub exercises the real model lane (LangChain, the repair turn, retrieval, Guardrails) with no
-GPU. It is a test double and never a table row.
+## Checked, with clear boundaries
 
-## Setup
+- 12 boundary tests. Each names the mutation that breaks it, and `tools/mutate.py` confirms all
+  11 mutations turn a test red.
+- 60 of 60 fixtures behave: every task ships a pass control the judge accepts and a fail control it
+  rejects.
+- Train, dev and test are disjoint. The test families (composite, orientation ambiguity, axis
+  refusal) never appear in training. Dev chooses what ships, and the table reads test runs only.
 
-Windows (baselines and the whole lane except serving):
+The boundaries:
 
-```
+- The test split is 4 tasks, run once at temperature 0, so the table shows direction, not
+  statistical significance.
+- The minimal-repair check is coarse (see the [guide](docs/guide.md#how-a-task-runs)).
+- The no-op demo is still failed by every adapter.
+
+## Quickstart
+
+Windows, Python 3.13. The baselines need no GPU.
+
+```powershell
+git clone https://github.com/sushiHex/acceptance-lab.git
+cd acceptance-lab
 python -m venv .venv
 .venv\Scripts\pip install -r requirements-windows.lock
+
+.venv\Scripts\python run.py baseline            # both baselines, then runs/table.html
+.venv\Scripts\python -m unittest test_lab -v    # boundary tests
+.venv\Scripts\python tools/controls.py          # every fixture's pass and fail control
 ```
 
-`requirements-baseline.lock` is enough for the baselines alone. Serving runs in WSL Ubuntu:
+For the model rows, serving runs vLLM in WSL Ubuntu on a 24 GB card. See the
+[technical guide](docs/guide.md#setup) for setup, evaluation, training and the full layout.
 
-```
-wsl -d Ubuntu-24.04 -u root -- bash tools/serve_setup.sh
-wsl -d Ubuntu-24.04 -u root -- bash tools/serve.sh     # bf16, 16K context, 60% of a 24 GB card
-python run.py demo --base-url http://127.0.0.1:8000/v1 --model nvidia/Llama-3.1-Nemotron-Nano-4B-v1.1
-```
-
-## Layout
-
-| Path | What it is |
-|---|---|
-| `scene.py` | Everything done to an OpenUSD bundle: inspect, preflight, apply, walk, checks |
-| `protocols.py` | The MCP executor and the A2A judge, thin over `scene.py` |
-| `run.py` | Coordinator and CLI, baseline proposers |
-| `propose.py` | The model lane: retrieval, prompt, parsing, the rail, the proposer |
-| `report.py` | Run log line and `runs/table.html` |
-| `rules/`, `guardrails/` | Retrieval corpus and the rail config |
-| `probes/` | Version probes for pxr, A2A and Guardrails, with their log |
-| `tools/` | Fixture builder, controls, mutation runner, leak scan, stub model, WSL serve setup and launch |
+[MIT](LICENSE) for original code and fixtures. Dependencies retain their own terms.
