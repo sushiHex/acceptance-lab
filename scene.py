@@ -99,11 +99,13 @@ def _layer_asset_paths(layer: Sdf.Layer) -> list[str]:
     return paths
 
 
-def walk(root_file: Path, bundle_root: Path) -> dict:
+def walk(root_file: Path, bundle_root: Path, leaf_ext: tuple = ()) -> dict:
     """Confine every asset path reachable from root_file to bundle_root, before any stage opens.
 
     Returns {"missing": [declared confined references that do not resolve]}; raises SceneError on
     any escape. Missing confined references are evidence (the broken-reference defect), not errors.
+    leaf_ext names extensions (textures) that pass the same confinement but are never opened as
+    layers. The judge passes none; only the read-only audit does.
     """
     bundle_root = Path(os.path.realpath(bundle_root))
     seen, missing, todo = set(), [], [Path(root_file)]
@@ -119,15 +121,16 @@ def walk(root_file: Path, bundle_root: Path) -> dict:
             raise SceneError(f"{f.name}: does not parse")
         for p in _layer_asset_paths(layer):
             why = _lexical_reject(p)
-            if why:
+            leaf = why == "extension" and p.endswith(leaf_ext)
+            if why and not leaf:
                 raise SceneError(f"{f.name}: asset path {p!r} rejected ({why})")
             target = Path(os.path.realpath(f.parent / p))
             if bundle_root not in target.parents and target != bundle_root:
                 raise SceneError(f"{f.name}: asset path {p!r} escapes the bundle")
-            if target.exists():
-                todo.append(target)
-            else:
+            if not target.exists() or (leaf and not target.is_file()):
                 missing.append(p)
+            elif not leaf:
+                todo.append(target)
     return {"missing": missing}
 
 

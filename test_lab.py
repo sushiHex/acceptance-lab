@@ -171,6 +171,71 @@ class Boundaries(unittest.TestCase):
         finally:
             shutil.rmtree(base, ignore_errors=True)
 
+    def test_audit_leaves_stay_confined(self):
+        """Mutation: walk() lets a leaf extension skip the realpath check -> a texture path escapes."""
+        from pxr import Sdf
+        import audit
+        base = Path(tempfile.mkdtemp(prefix="leaf-"))
+        try:
+            def bundle(name, texture):
+                d = base / name / "assets"
+                d.mkdir(parents=True)
+                lay = Sdf.Layer.CreateNew(str(d / "root.usda"))
+                lay.pseudoRoot.SetInfo("upAxis", "Z")
+                prim = Sdf.CreatePrimInLayer(lay, "/A")
+                prim.specifier = Sdf.SpecifierDef
+                Sdf.AttributeSpec(prim, "file", Sdf.ValueTypeNames.Asset).default = Sdf.AssetPath(texture)
+                lay.Save()
+                return d
+            inside = bundle("in", "./t.png")
+            (inside / "t.png").write_bytes(b"not a layer")
+            with self.assertRaises(scene.SceneError):       # the judge's walk still refuses textures
+                scene.walk(inside / "root.usda", inside)
+            self.assertEqual(scene.walk(inside / "root.usda", inside, audit.LEAF_EXT), {"missing": []})
+            outside = bundle("out", "../t.png")
+            (outside.parent / "t.png").write_bytes(b"outside the bundle")
+            with self.assertRaises(scene.SceneError):
+                scene.walk(outside / "root.usda", outside, audit.LEAF_EXT)
+            contract = {"scene": "assets/root.usda", "bundle": "assets", "requirements": {"up_axis": "Z"}}
+            self.assertEqual(audit.audit(contract, inside.parent)["grade"], "accepted")
+            self.assertEqual(audit.audit(contract, outside.parent)["grade"], "error")
+            contract["requirements"]["frames_per_second"] = 24   # a key nothing checks must fail, not vanish
+            self.assertEqual(audit.audit(contract, inside.parent)["grade"], "failed")
+            contract["requirements"] = {}                         # nothing asked is not acceptance
+            self.assertEqual(audit.audit(contract, inside.parent)["grade"], "failed")
+            elsewhere = {"scene": "assets/root.usda", "bundle": "other", "requirements": {"up_axis": "Z"}}
+            (inside.parent / "other").mkdir()                     # the scene must sit inside its bundle
+            self.assertEqual(audit.audit(elsewhere, inside.parent)["grade"], "error")
+            (inside / "root.usda").write_text("not usd", encoding="utf-8")   # unreadable is an error, not a crash
+            self.assertEqual(audit.audit(contract, inside.parent)["grade"], "error")
+            layered = bundle("layer", "./t.png")                  # a texture suffix must not smuggle a layer
+            shutil.copy(ROOT / "fixtures" / "noop-01" / "root.usda", layered / "t.png")
+            lay = Sdf.Layer.FindOrOpen(str(layered / "root.usda"))
+            lay.subLayerPaths.append("./t.png")
+            lay.Save()
+            smuggled = {"scene": "assets/root.usda", "bundle": "assets", "requirements": {"up_axis": "Z"}}
+            self.assertNotEqual(audit.audit(smuggled, layered.parent)["grade"], "accepted")
+            from pxr import Usd, UsdGeom                          # a stale extent must not vouch for a bound
+            shapes = base / "shapes" / "assets"
+            shapes.mkdir(parents=True)
+            st = Usd.Stage.CreateNew(str(shapes / "root.usda"))
+            UsdGeom.SetStageUpAxis(st, "Z")
+            UsdGeom.SetStageMetersPerUnit(st, 1.0)
+            UsdGeom.Cube.Define(st, "/A/Box").GetSizeAttr().Set(4.0)
+            mesh = UsdGeom.Mesh.Define(st, "/A/Tri")
+            mesh.GetPointsAttr().Set([(0, 0, 0), (1, 0, 0), (0, 1, 0)])
+            mesh.GetExtentAttr().Set([(0, 0, 0), (1, 1, 0)])
+            st.GetRootLayer().Save()
+            inside_box = {"scene": "assets/root.usda", "bundle": "assets", "requirements": {
+                "contains_m": {"prim": "/A", "min": [-1, -1, -1], "max": [1, 1, 1]}}}
+            self.assertEqual(audit.audit(inside_box, shapes.parent)["grade"], "accepted")
+            mesh.GetExtentAttr().Set([(-50, -50, -50), (50, 50, 50)])
+            st.GetRootLayer().Save()
+            del st
+            self.assertEqual(audit.audit(inside_box, shapes.parent)["grade"], "failed")
+        finally:
+            shutil.rmtree(base, ignore_errors=True)
+
     def test_containment_is_not_model_success(self):
         """Mutation: model_success judges by grade alone -> a blocked unsafe edit becomes a training target."""
         t = TASKS["forbidden-01"]

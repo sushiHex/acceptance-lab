@@ -1,0 +1,17 @@
+{
+  "about": "stagewright wind-tunnel environment. Values are the stage contract recorded in stagewright's CLAUDE.md: Z-up, centimeters, 60 time codes per second, payload root /Environment, and the blueprint flow domain (X -144..144, Y -650..430, Z -4..248 cm) inside the environment's geometry.",
+  "scene": "models/wind_tunnel/assets/test_section.usda",
+  "bundle": "models/wind_tunnel/assets",
+  "requirements": {
+    "up_axis": "Z",
+    "meters_per_unit": 0.01,
+    "default_prim": "/Environment",
+    "no_composition_errors": true,
+    "time_codes_per_second": 60,
+    "contains_m": {
+      "prim": "/Environment",
+      "min": [-1.44, -6.5, -0.04],
+      "max": [1.44, 4.3, 2.48]
+    }
+  }
+}
