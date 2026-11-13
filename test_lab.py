@@ -236,6 +236,45 @@ class Boundaries(unittest.TestCase):
         finally:
             shutil.rmtree(base, ignore_errors=True)
 
+    def test_audit_stage_checks_can_fail(self):
+        """Mutation: an audit-only check (time-code rate, contained region) reports pass whatever
+        it observed, or reads a fallback or unconverted value -> a scene off its contract is accepted."""
+        from pxr import Usd, UsdGeom
+        import audit
+        base = Path(tempfile.mkdtemp(prefix="stage-"))
+        try:
+            def bundle(name, meters_per_unit, size, rate):
+                d = base / name / "assets"
+                d.mkdir(parents=True)
+                st = Usd.Stage.CreateNew(str(d / "root.usda"))
+                UsdGeom.SetStageUpAxis(st, "Z")
+                UsdGeom.SetStageMetersPerUnit(st, meters_per_unit)
+                if rate:
+                    st.SetTimeCodesPerSecond(rate)
+                UsdGeom.Cube.Define(st, "/A/Box").GetSizeAttr().Set(size)
+                st.GetRootLayer().Save()
+                return d.parent
+
+            def grade(root, **requirements):
+                return audit.audit({"scene": "assets/root.usda", "bundle": "assets",
+                                    "requirements": requirements}, root)["grade"]
+
+            def box(half, prim="/A"):
+                return {"prim": prim, "min": [-half] * 3, "max": [half] * 3}
+
+            meters = bundle("m", 1.0, 4.0, 24)                    # a 4 m cube: reaches 2 m each way
+            self.assertEqual(grade(meters, time_codes_per_second=24, contains_m=box(1)), "accepted")
+            self.assertEqual(grade(meters, time_codes_per_second=60), "failed")
+            self.assertEqual(grade(meters, contains_m=box(3)), "failed")
+            self.assertEqual(grade(meters, contains_m=box(1, "/Missing")), "failed")
+            unstated = bundle("unstated", 1.0, 4.0, None)         # the schema fallback is not a stated rate
+            self.assertEqual(grade(unstated, time_codes_per_second=24), "failed")
+            centimeters = bundle("cm", 0.01, 400.0, 24)           # the same cube authored in centimeters
+            self.assertEqual(grade(centimeters, contains_m=box(1)), "accepted")
+            self.assertEqual(grade(centimeters, contains_m=box(3)), "failed")
+        finally:
+            shutil.rmtree(base, ignore_errors=True)
+
     def test_containment_is_not_model_success(self):
         """Mutation: model_success judges by grade alone -> a blocked unsafe edit becomes a training target."""
         t = TASKS["forbidden-01"]
