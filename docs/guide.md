@@ -81,6 +81,7 @@ Audit a scene that already exists, with no model, proposal or executor:
 ```
 python audit.py contracts/stagewright-wind-tunnel.json --root PATH/TO/stagewright
 python audit.py contracts/stagewright-inspection-hall.json --root PATH/TO/BUILT/HALL
+python audit.py contracts/stagewright-courtyard.json --root PATH/TO/BUILT/COURTYARD
 ```
 
 `audit.py` reads the scene and writes nothing. It runs the judge's requirement checks, and adds the
@@ -88,8 +89,8 @@ time-code rate and a region the geometry bound must contain. Textures must stay 
 and are never opened as layers. A requirement key it cannot check fails the audit. The containment
 check compares an axis-aligned bound; it does not show an unobstructed region. The contracts in
 `contracts/` describe [stagewright](https://github.com/sushiHex/stagewright) scenes: the shipped
-wind-tunnel asset is accepted, and the inspection hall as built is refused because two of its
-asset paths are not anchored with `./`.
+wind-tunnel asset is accepted, and the inspection hall and COURTYARD as built are refused because
+some of their layer paths are not anchored with `./`.
 
 Training. The judge is the only label source and the only reward, and dev picks what ships:
 

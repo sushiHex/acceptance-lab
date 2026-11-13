@@ -1,0 +1,17 @@
+{
+  "about": "stagewright COURTYARD, as built by models/courtyard/build.py --out DIR (pass DIR as --root). Static scene facts only: Z-up, meters, default prim /World, the display time-code rate, and the west hall, east hall and north gallery footprints declared in the model's source/common.py inside the expansion geometry, up to the lower eave. The roof mechanism's opening condition is measured from recorded solver poses by the model's own tools; this audit does not check it.",
+  "scene": "scene.usda",
+  "bundle": ".",
+  "requirements": {
+    "up_axis": "Z",
+    "meters_per_unit": 1.0,
+    "default_prim": "/World",
+    "no_composition_errors": true,
+    "time_codes_per_second": 24,
+    "contains_m": {
+      "prim": "/World/Expansion",
+      "min": [-36.5, -9.0, 0.0],
+      "max": [36.5, 25.45, 6.8]
+    }
+  }
+}
