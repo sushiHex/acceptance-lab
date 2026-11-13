@@ -89,8 +89,8 @@ time-code rate and a region the geometry bound must contain. Textures must stay 
 and are never opened as layers. A requirement key it cannot check fails the audit. The containment
 check compares an axis-aligned bound at the default time; it does not show an unobstructed region,
 that the intended structure supplies the bound, or anything about animated geometry. An authored
-extent its own shape does not compute, animated points or extent, and an inactive or invisible
-named prim each leave the check unknown, which fails the audit. The bundle hash is reported for
+extent its own shape does not compute, animated points, extent or transforms, and an inactive or
+invisible named prim each leave the check unknown, which fails the audit. The bundle hash is reported for
 the record and is not compared with an expected value. The contracts in
 `contracts/` describe [stagewright](https://github.com/sushiHex/stagewright) scenes: the shipped
 wind-tunnel asset, the inspection hall and COURTYARD are each accepted. `contains_m` takes one

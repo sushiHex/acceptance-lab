@@ -78,8 +78,8 @@ def _contains(stage, want: dict) -> dict:
     """
     name = f"requirement.contains_m:{want['prim']}"
     box = f"{want['min']} to {want['max']}"
-    if any(lo > hi for lo, hi in zip(want["min"], want["max"])):
-        return scene._check(name, box, "the contract's box has min above max", "fail")
+    if len(want["min"]) != 3 or len(want["max"]) != 3 or any(lo > hi for lo, hi in zip(want["min"], want["max"])):
+        return scene._check(name, box, "the contract's box is not three ordered coordinates", "fail")
     r = _trusted_bound(stage, want["prim"])
     if r is None:
         return scene._check(name, box, "no checkable geometry or stale extent", "unknown")
@@ -102,7 +102,12 @@ def _trusted_bound(stage, prim_path: str):
     if UsdGeom.Imageable(start).ComputeVisibility() == UsdGeom.Tokens.invisible:
         return None
     tol = scene.GEOM_ABS_TOL_M / UsdGeom.GetStageMetersPerUnit(stage)
+    above = [start.GetPath().GetPrefixes()[i] for i in range(start.GetPath().pathElementCount - 1)]
+    if any(UsdGeom.Xformable(stage.GetPrimAtPath(p)).TransformMightBeTimeVarying() for p in above):
+        return None
     for prim in Usd.PrimRange(start, Usd.TraverseInstanceProxies(Usd.PrimDefaultPredicate)):
+        if UsdGeom.Xformable(prim).TransformMightBeTimeVarying():
+            return None
         shape = UsdGeom.Boundable(prim)
         if not shape:
             continue

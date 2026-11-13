@@ -121,7 +121,7 @@ runs.** Both runs are in [`results/`](results).
 
 | Check | Result |
 |:--|:--|
-| **Tests** | 14 tests, each naming the code change that must make it fail. `tools/mutate.py` makes 25 such changes across 13 of the tests, and the named test fails every time. |
+| **Tests** | 14 tests, each naming the code change that must make it fail. `tools/mutate.py` makes 28 such changes across 13 of the tests, and the named test fails every time. |
 | **Controls** | Each of the 60 tasks has a pass control and a fail control. The judge accepts every pass control and rejects every fail control. |
 | **Splits** | Train, dev and test do not overlap. Dev selects the adapter. The results table reads test runs only. |
 

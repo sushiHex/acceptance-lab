@@ -1,5 +1,5 @@
 {
-  "about": "stagewright COURTYARD, as built by models/courtyard/build.py --out DIR (pass DIR as --root). Static scene facts only: Z-up, meters, default prim /World, the display time-code rate, and the west hall, east hall and north gallery footprints declared in the model's source/common.py inside the expansion geometry, up to the lower eave. The roof and south wall regions are their closed poses as declared in the model's source/parameters.json: width 24, the roof plane from the rear pivot at Y 9 across the 18 link length at the upper pivot height 8.7, and the wall plane at Y -9 between the pivot heights 0.7 and 8.7. The roof mechanism's opening condition is measured from recorded solver poses by the model's own tools; this audit does not check it.",
+  "about": "stagewright COURTYARD, as built by models/courtyard/build.py --out DIR (pass DIR as --root). Static scene facts only: Z-up, meters, default prim /World, the display time-code rate, and one region per component, each inside that component's axis-aligned bound. The west hall, east hall and north gallery regions are the footprints declared in the model's source/common.py, as a plane at each one's declared eave or deck height, against the construction pass that builds it. The roof and south wall regions are reference planes of their authored poses from source/parameters.json and source/author.py: width 24, the roof's hinge plane from the rear pivot at Y 9 across the 18 link length at the upper pivot height 8.7 (the roof surface sits above it), and the wall plane at Y -9 between the pivot heights 0.7 and 8.7. The roof mechanism's opening condition is measured from recorded solver poses by the model's own tools; this audit does not check it.",
   "scene": "scene.usda",
   "bundle": ".",
   "requirements": {
@@ -9,7 +9,9 @@
     "no_composition_errors": true,
     "time_codes_per_second": 24,
     "contains_m": [
-      {"prim": "/World/Expansion", "min": [-36.5, -9.0, 0.0], "max": [36.5, 25.45, 6.8]},
+      {"prim": "/World/Expansion/Pass05", "min": [-36.5, -9.0, 7.15], "max": [-28.5, 18.0, 7.15]},
+      {"prim": "/World/Expansion/Pass06", "min": [28.5, -9.0, 6.8], "max": [36.5, 18.0, 6.8]},
+      {"prim": "/World/Expansion/Pass07", "min": [-33.2, 23.05, 5.72], "max": [33.2, 25.45, 5.72]},
       {"prim": "/World/Mechanism/Roof", "min": [-12.0, -9.0, 8.7], "max": [12.0, 9.0, 8.7]},
       {"prim": "/World/Mechanism/SouthWall", "min": [-12.0, -9.0, 0.7], "max": [12.0, -9.0, 8.7]}
     ]

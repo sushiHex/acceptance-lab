@@ -1,5 +1,5 @@
 {
-  "about": "stagewright inspection hall, as built by models/inspection_hall/build.py --out DIR (pass DIR as --root). Static scene facts only: Z-up, meters, default prim /World, and the portal region from the model's source/design.json inside the scene's geometry. The model's operating conditions are measured from recorded solver poses by its own measure.py; this audit does not check them.",
+  "about": "stagewright inspection hall, as built by models/inspection_hall/build.py --out DIR (pass DIR as --root). Static scene facts only: Z-up, meters, default prim /World, and two regions of the authored pose from the model's source/design.json, each inside its component's axis-aligned bound: the portal region (X -10..10, Y -9.2..-8.8, Z 0.4..3.4) inside the front leaf's, and the court footprint (X -9..9, Y -7..7) as a plane at the roof hinge height 7.0 inside the roof's (the roof surface sits above that plane). The model's operating conditions are measured from recorded solver poses by its own measure.py; this audit does not check them.",
   "scene": "scene.usda",
   "bundle": ".",
   "requirements": {
@@ -7,10 +7,9 @@
     "meters_per_unit": 1.0,
     "default_prim": "/World",
     "no_composition_errors": true,
-    "contains_m": {
-      "prim": "/World",
-      "min": [-10.0, -9.2, 0.4],
-      "max": [10.0, -8.8, 3.4]
-    }
+    "contains_m": [
+      {"prim": "/World/Mechanism/FrontLeafDeck", "min": [-10.0, -9.2, 0.4], "max": [10.0, -8.8, 3.4]},
+      {"prim": "/World/Mechanism/RoofInput", "min": [-9.0, -7.0, 7.0], "max": [9.0, 7.0, 7.0]}
+    ]
   }
 }

@@ -293,7 +293,17 @@ class Boundaries(unittest.TestCase):
             hidden = edited("hidden", lambda st, c: c.MakeInvisible())
             self.assertEqual(grade(hidden, contains_m=box(1, "/A/Box")), "failed")
 
-            def animate(st, c):                                   # no default points: nothing to check an extent against
+            four = {"prim": "/A", "min": [-1] * 3, "max": [1, 1, 1, 9]}      # a fourth number is not a region
+            self.assertEqual(grade(meters, contains_m=four), "failed")
+            for name, path in (("moving", "/A/Box"), ("carried", "/A")):     # a moving shape or parent: one pose shows little
+                def move(st, c):
+                    op = UsdGeom.Xformable(st.GetPrimAtPath(path)).AddTranslateOp()
+                    op.Set((0, 0, 0), 1.0)
+                    op.Set((0, 0, 9), 2.0)
+                moved = edited(name, move)
+                self.assertEqual(grade(moved, contains_m=box(1, "/A/Box")), "failed")
+
+            def animate(st, c):                                 # no default points: nothing to check an extent against
                 mesh = UsdGeom.Mesh.Define(st, "/A/Tri")
                 mesh.GetPointsAttr().Set([(0, 0, 0), (0.1, 0, 0), (0, 0.1, 0)], 1.0)
                 mesh.GetExtentAttr().Set([(-50,) * 3, (50,) * 3])
