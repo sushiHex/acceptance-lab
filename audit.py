@@ -51,7 +51,10 @@ def audit(contract: dict, root: Path) -> dict:
             required.append(scene._check("requirement.time_codes_per_second", want, have,
                                          "pass" if have == want else "fail"))
         if "contains_m" in requirements:
-            required.append(_contains(stage, requirements["contains_m"]))
+            regions = requirements["contains_m"]      # one region, or one per named component
+            regions = regions if isinstance(regions, list) else [regions]
+            required += [_contains(stage, r) for r in regions] or [
+                scene._check("requirement.contains_m", "at least one region", "none", "fail")]
         digest = hashlib.sha256(json.dumps(scene.bundle_hashes(bundle), sort_keys=True).encode()).hexdigest()
     except Exception as e:  # noqa: BLE001
         checks.append(scene._check("scene.readable", "confined and readable", str(e)[:200], "fail"))

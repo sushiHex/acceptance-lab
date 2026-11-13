@@ -1,5 +1,5 @@
 {
-  "about": "stagewright COURTYARD, as built by models/courtyard/build.py --out DIR (pass DIR as --root). Static scene facts only: Z-up, meters, default prim /World, the display time-code rate, and the west hall, east hall and north gallery footprints declared in the model's source/common.py inside the expansion geometry, up to the lower eave. The roof mechanism's opening condition is measured from recorded solver poses by the model's own tools; this audit does not check it.",
+  "about": "stagewright COURTYARD, as built by models/courtyard/build.py --out DIR (pass DIR as --root). Static scene facts only: Z-up, meters, default prim /World, the display time-code rate, and the west hall, east hall and north gallery footprints declared in the model's source/common.py inside the expansion geometry, up to the lower eave. The roof and south wall regions are their closed poses as declared in the model's source/parameters.json: width 24, the roof plane from the rear pivot at Y 9 across the 18 link length at the upper pivot height 8.7, and the wall plane at Y -9 between the pivot heights 0.7 and 8.7. The roof mechanism's opening condition is measured from recorded solver poses by the model's own tools; this audit does not check it.",
   "scene": "scene.usda",
   "bundle": ".",
   "requirements": {
@@ -8,10 +8,10 @@
     "default_prim": "/World",
     "no_composition_errors": true,
     "time_codes_per_second": 24,
-    "contains_m": {
-      "prim": "/World/Expansion",
-      "min": [-36.5, -9.0, 0.0],
-      "max": [36.5, 25.45, 6.8]
-    }
+    "contains_m": [
+      {"prim": "/World/Expansion", "min": [-36.5, -9.0, 0.0], "max": [36.5, 25.45, 6.8]},
+      {"prim": "/World/Mechanism/Roof", "min": [-12.0, -9.0, 8.7], "max": [12.0, 9.0, 8.7]},
+      {"prim": "/World/Mechanism/SouthWall", "min": [-12.0, -9.0, 0.7], "max": [12.0, -9.0, 8.7]}
+    ]
   }
 }

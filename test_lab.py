@@ -272,6 +272,9 @@ class Boundaries(unittest.TestCase):
             centimeters = bundle("cm", 0.01, 400.0, 24)           # the same cube authored in centimeters
             self.assertEqual(grade(centimeters, contains_m=box(1)), "accepted")
             self.assertEqual(grade(centimeters, contains_m=box(3)), "failed")
+            self.assertEqual(grade(meters, contains_m=[box(1), box(1, "/A/Box")]), "accepted")
+            self.assertEqual(grade(meters, contains_m=[box(1), box(3, "/A/Box")]), "failed")   # every region counts
+            self.assertEqual(grade(meters, up_axis="Z", contains_m=[]), "failed")              # no region is no check
             reversed_box = {"prim": "/A", "min": [1] * 3, "max": [-1] * 3}   # contains nothing, so shows nothing
             self.assertEqual(grade(meters, contains_m=reversed_box), "failed")
 

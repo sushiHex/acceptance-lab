@@ -93,9 +93,12 @@ extent its own shape does not compute, animated points or extent, and an inactiv
 named prim each leave the check unknown, which fails the audit. The bundle hash is reported for
 the record and is not compared with an expected value. The contracts in
 `contracts/` describe [stagewright](https://github.com/sushiHex/stagewright) scenes: the shipped
-wind-tunnel asset, the inspection hall and COURTYARD are each accepted. The audit first refused the
-hall and COURTYARD because some of their layer paths were not anchored with `./`; stagewright
-fixed its generators.
+wind-tunnel asset, the inspection hall and COURTYARD are each accepted. `contains_m` takes one
+region or a list, one per named component, so a contract can ask that the hall, the tunnel and the
+floor each reach their stated region instead of the scene as a whole; each region's source is
+named in the contract's `about`. The audit has twice refused a scene until stagewright fixed its
+generators: layer paths in the hall and COURTYARD were not anchored with `./`, and COURTYARD's
+meshes, its moving roof and wall among them, carried no extent.
 
 Training. The judge is the only label source and the only reward, and dev picks what ships:
 
