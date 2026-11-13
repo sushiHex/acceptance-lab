@@ -89,8 +89,9 @@ time-code rate and a region the geometry bound must contain. Textures must stay 
 and are never opened as layers. A requirement key it cannot check fails the audit. The containment
 check compares an axis-aligned bound; it does not show an unobstructed region. The contracts in
 `contracts/` describe [stagewright](https://github.com/sushiHex/stagewright) scenes: the shipped
-wind-tunnel asset is accepted, and the inspection hall and COURTYARD as built are refused because
-some of their layer paths are not anchored with `./`.
+wind-tunnel asset, the inspection hall and COURTYARD are each accepted. The audit first refused the
+hall and COURTYARD because some of their layer paths were not anchored with `./`; stagewright
+fixed its generators.
 
 Training. The judge is the only label source and the only reward, and dev picks what ships:
 
