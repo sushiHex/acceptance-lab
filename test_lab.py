@@ -272,6 +272,29 @@ class Boundaries(unittest.TestCase):
             centimeters = bundle("cm", 0.01, 400.0, 24)           # the same cube authored in centimeters
             self.assertEqual(grade(centimeters, contains_m=box(1)), "accepted")
             self.assertEqual(grade(centimeters, contains_m=box(3)), "failed")
+            reversed_box = {"prim": "/A", "min": [1] * 3, "max": [-1] * 3}   # contains nothing, so shows nothing
+            self.assertEqual(grade(meters, contains_m=reversed_box), "failed")
+
+            def edited(name, edit):
+                root = bundle(name, 1.0, 4.0, 24)
+                st = Usd.Stage.Open(str(root / "assets" / "root.usda"))
+                edit(st, UsdGeom.Cube.Get(st, "/A/Box"))
+                st.GetRootLayer().Save()
+                return root
+
+            lying = edited("lying", lambda st, c: (c.GetSizeAttr().Set(0.1),      # a small shape, a large claim
+                                                   c.GetExtentAttr().Set([(-50,) * 3, (50,) * 3])))
+            self.assertEqual(grade(lying, contains_m=box(1)), "failed")
+            inactive = edited("inactive", lambda st, c: c.GetPrim().SetActive(False))
+            self.assertEqual(grade(inactive, contains_m=box(1, "/A/Box")), "failed")
+            hidden = edited("hidden", lambda st, c: c.MakeInvisible())
+            self.assertEqual(grade(hidden, contains_m=box(1, "/A/Box")), "failed")
+
+            def animate(st, c):                                   # no default points: nothing to check an extent against
+                mesh = UsdGeom.Mesh.Define(st, "/A/Tri")
+                mesh.GetPointsAttr().Set([(0, 0, 0), (0.1, 0, 0), (0, 0.1, 0)], 1.0)
+                mesh.GetExtentAttr().Set([(-50,) * 3, (50,) * 3])
+            self.assertEqual(grade(edited("animated", animate), contains_m=box(3)), "failed")
         finally:
             shutil.rmtree(base, ignore_errors=True)
 

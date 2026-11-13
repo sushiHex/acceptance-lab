@@ -75,6 +75,8 @@ def _contains(stage, want: dict) -> dict:
     """
     name = f"requirement.contains_m:{want['prim']}"
     box = f"{want['min']} to {want['max']}"
+    if any(lo > hi for lo, hi in zip(want["min"], want["max"])):
+        return scene._check(name, box, "the contract's box has min above max", "fail")
     r = _trusted_bound(stage, want["prim"])
     if r is None:
         return scene._check(name, box, "no checkable geometry or stale extent", "unknown")
@@ -87,20 +89,33 @@ def _trusted_bound(stage, prim_path: str):
 
     `scene.bound` counts points only, which is right for the repair tasks and blind to scenes
     built from intrinsic shapes. BBoxCache sees those, but it believes an authored extent, so
-    every point-based prim's extent is first checked against its own points.
+    every authored extent is first checked against the one its own schema computes. The bound is
+    read at the default time only, so animated geometry or extent is not vouched for, and neither
+    is a named prim that is inactive or invisible.
     """
     start = stage.GetPrimAtPath(prim_path)
-    if not start:
+    if not start or not start.IsActive():
         return None
+    if UsdGeom.Imageable(start).ComputeVisibility() == UsdGeom.Tokens.invisible:
+        return None
+    tol = scene.GEOM_ABS_TOL_M / UsdGeom.GetStageMetersPerUnit(stage)
     for prim in Usd.PrimRange(start, Usd.TraverseInstanceProxies(Usd.PrimDefaultPredicate)):
-        pb = UsdGeom.PointBased(prim)
-        pts = pb.GetPointsAttr().Get() if pb else None
-        if not pts:
+        shape = UsdGeom.Boundable(prim)
+        if not shape:
             continue
-        ext = pb.GetExtentAttr().Get()
-        real = UsdGeom.PointBased.ComputeExtent(pts)
-        if ext is None or any(abs(a - b) > scene.GEOM_ABS_TOL_M / UsdGeom.GetStageMetersPerUnit(stage)
-                              for lo, hi in zip(ext, real) for a, b in zip(lo, hi)):
+        pb = UsdGeom.PointBased(prim)
+        if shape.GetExtentAttr().ValueMightBeTimeVarying() or (pb and pb.GetPointsAttr().ValueMightBeTimeVarying()):
+            return None
+        attr = shape.GetExtentAttr()
+        ext = attr.Get() if attr.HasAuthoredValue() else None   # an unauthored extent reads as a schema fallback
+        if pb and not pb.GetPointsAttr().Get():
+            if ext is None:
+                continue          # no points and no extent: contributes nothing to the bound
+            return None           # an extent with no points behind it
+        real = UsdGeom.Boundable.ComputeExtentFromPlugins(shape, Usd.TimeCode.Default())
+        if real is None or (pb and ext is None):
+            return None
+        if ext is not None and any(abs(a - b) > tol for lo, hi in zip(ext, real) for a, b in zip(lo, hi)):
             return None
     return scene._extent_range(stage, prim_path, canonical=True)
 

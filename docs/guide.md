@@ -87,7 +87,11 @@ python audit.py contracts/stagewright-courtyard.json --root PATH/TO/BUILT/COURTY
 `audit.py` reads the scene and writes nothing. It runs the judge's requirement checks, and adds the
 time-code rate and a region the geometry bound must contain. Textures must stay inside the bundle
 and are never opened as layers. A requirement key it cannot check fails the audit. The containment
-check compares an axis-aligned bound; it does not show an unobstructed region. The contracts in
+check compares an axis-aligned bound at the default time; it does not show an unobstructed region,
+that the intended structure supplies the bound, or anything about animated geometry. An authored
+extent its own shape does not compute, animated points or extent, and an inactive or invisible
+named prim each leave the check unknown, which fails the audit. The bundle hash is reported for
+the record and is not compared with an expected value. The contracts in
 `contracts/` describe [stagewright](https://github.com/sushiHex/stagewright) scenes: the shipped
 wind-tunnel asset, the inspection hall and COURTYARD are each accepted. The audit first refused the
 hall and COURTYARD because some of their layer paths were not anchored with `./`; stagewright

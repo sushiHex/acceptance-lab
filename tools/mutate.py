@@ -57,6 +57,26 @@ MUTATIONS = [
      "for lo, hi in zip(ext, real) for a, b in zip(lo, hi)):\n            continue",
      "test_audit_leaves_stay_confined"),
     ("audit.py",
+     "        shape = UsdGeom.Boundable(prim)\n",
+     "        shape = UsdGeom.PointBased(prim)\n",
+     "test_audit_stage_checks_can_fail"),
+    ("audit.py",
+     "            return None           # an extent with no points behind it",
+     "            continue",
+     "test_audit_stage_checks_can_fail"),
+    ("audit.py",
+     "    if not start or not start.IsActive():",
+     "    if not start:",
+     "test_audit_stage_checks_can_fail"),
+    ("audit.py",
+     "    if UsdGeom.Imageable(start).ComputeVisibility() == UsdGeom.Tokens.invisible:",
+     "    if False:",
+     "test_audit_stage_checks_can_fail"),
+    ("audit.py",
+     "    if any(lo > hi for lo, hi in zip(want[\"min\"], want[\"max\"])):",
+     "    if False:",
+     "test_audit_stage_checks_can_fail"),
+    ("audit.py",
      '                                         "pass" if have == want else "fail"))',
      '                                         "pass"))',
      "test_audit_stage_checks_can_fail"),
@@ -95,6 +115,12 @@ def run_test(name: str) -> bool:
 
 def main() -> int:
     bad = 0
+    for test in sorted({m[3] for m in MUTATIONS}):   # a test already red would count every change as caught
+        if not run_test(test):
+            print(f"RED      {test}  (fails before any change)")
+            bad += 1
+    if bad:
+        return 1
     for f, old, new, test in MUTATIONS:
         path = ROOT / f
         src = path.read_text(encoding="utf-8")
